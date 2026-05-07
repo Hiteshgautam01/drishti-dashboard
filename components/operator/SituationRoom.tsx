@@ -15,6 +15,18 @@ import {
   PhoneIncoming,
   Wifi,
   WifiOff,
+  Globe2,
+  Flame,
+  CloudRain,
+  Cloud,
+  Mountain,
+  Snowflake,
+  Wind,
+  Sun,
+  Thermometer,
+  Factory,
+  Droplets,
+  ExternalLink,
 } from "lucide-react";
 
 // ─── Live feeds config ────────────────────────────────────────────────────
@@ -23,10 +35,33 @@ import {
 // client-side; if any one fails we fall back to the static mocks so the demo
 // stays presentable on bad networks.
 
-// DD India 24×7 official channel. The `live_stream?channel=…` URL form always
-// resolves to the channel's currently-live broadcast.
-const DD_INDIA_CHANNEL_ID = "UCmAbm-7YInLbrmu5BxFb6lA";
-const DD_INDIA_LIVE_URL = `https://www.youtube.com/embed/live_stream?channel=${DD_INDIA_CHANNEL_ID}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1`;
+// YouTube live channels — `live_stream?channel=ID` always resolves to the
+// channel's current live broadcast. We default to DW News (rock-solid 24/7
+// English international) and offer WION as an Indian-context alternate.
+const YT_CHANNELS = [
+  {
+    id: "dw",
+    label: "DW NEWS",
+    sub: "English · Germany",
+    channelId: "UCknLrEdhRCp1aegoMqRaCZg",
+  },
+  {
+    id: "wion",
+    label: "WION",
+    sub: "English · India",
+    channelId: "UC_gUM8rL-Lrg6O3adPW9K1g",
+  },
+  {
+    id: "aje",
+    label: "AL JAZEERA",
+    sub: "English · Qatar",
+    channelId: "UCNye-wNBqNL5ZzHSJj3l8Bg",
+  },
+] as const;
+type YtChannelId = (typeof YT_CHANNELS)[number]["id"];
+function ytLiveUrl(channelId: string) {
+  return `https://www.youtube.com/embed/live_stream?channel=${channelId}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1`;
+}
 
 // Open-Meteo — Guwahati (Brahmaputra at LGB Intl Airport). No key, no quota.
 const OPEN_METEO_URL =
@@ -41,6 +76,12 @@ const REDDIT_URL =
     "flood OR brahmaputra OR monsoon OR cyclone OR rainfall OR landslide OR ndrf OR ndma OR rescue OR disaster"
   ) +
   "&restrict_sr=true&sort=new&t=month&limit=50";
+
+// NASA EONET — every active natural-disaster event on Earth right now. CORS-
+// open, no key, JSON. Used to demonstrate DRISHTI's global-scale claim with
+// real data the jury can verify in another browser tab.
+const EONET_URL =
+  "https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100";
 
 const LIVE_REFRESH_MS = 60_000;
 
@@ -157,6 +198,9 @@ export function SituationRoom() {
           <SocialPulse live={live} />
         </div>
 
+        {/* Global pulse — full width, proves the global-scale claim */}
+        <GlobalDisasterPulse live={live} />
+
         {/* Bottom row: Drone + Call center */}
         <div className="grid gap-3 lg:grid-cols-2">
           <DroneFeed />
@@ -221,48 +265,84 @@ function Header({ live, setLive }: { live: boolean; setLive: (v: boolean) => voi
 
 function NewsTelecast({ live }: { live: boolean }) {
   const [headlineIdx, setHeadlineIdx] = useState(0);
-  // Track iframe-load failure so we can drop back to the SVG mock cleanly.
-  const [iframeFailed, setIframeFailed] = useState(false);
+  const [channel, setChannel] = useState<YtChannelId>("dw");
+  // Per-channel failure tracking so we can show a "tile failed" state without
+  // permanently disabling all iframes.
+  const [failed, setFailed] = useState<Record<YtChannelId, boolean>>({
+    dw: false,
+    wion: false,
+    aje: false,
+  });
 
   useEffect(() => {
     const id = setInterval(() => setHeadlineIdx((i) => (i + 1) % NEWS_HEADLINES.length), 5500);
     return () => clearInterval(id);
   }, []);
 
-  // Reset failure state when toggling live mode back on
+  // Reset failure state when re-entering live mode
   useEffect(() => {
-    if (live) setIframeFailed(false);
+    if (live) setFailed({ dw: false, wion: false, aje: false });
   }, [live]);
 
-  const showIframe = live && !iframeFailed;
+  const activeChannel = YT_CHANNELS.find((c) => c.id === channel)!;
+  const showIframe = live && !failed[channel];
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black tv-scanlines tv-vignette tv-flicker">
       <div className="relative aspect-[16/9] w-full">
         {showIframe ? (
           <iframe
-            src={DD_INDIA_LIVE_URL}
-            title="DD India Live"
+            // key forces the iframe to remount when channel changes — important
+            // because YouTube embeds don't always replace src cleanly.
+            key={activeChannel.channelId}
+            src={ytLiveUrl(activeChannel.channelId)}
+            title={`${activeChannel.label} Live`}
             className="absolute inset-0 h-full w-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
-            onError={() => setIframeFailed(true)}
+            onError={() => setFailed((f) => ({ ...f, [channel]: true }))}
           />
         ) : (
           <NewsBackdrop />
         )}
 
-        {/* Top-left LIVE badge — kept above iframe via z-index */}
+        {/* Top-left LIVE badge */}
         <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-1.5">
           <span className="flex items-center gap-1 rounded-sm bg-red-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white">
             <span className="h-1.5 w-1.5 rounded-full bg-white rec-blink" />
             LIVE
           </span>
           <span className="rounded-sm bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-amber-300">
-            {showIframe ? "DD INDIA · YOUTUBE" : "DD NEWS · MOCK"}
+            {showIframe ? `${activeChannel.label} · YT` : "MOCK"}
           </span>
         </div>
+
+        {/* Channel switcher — pointer-events enabled so the user can pick */}
+        {live && (
+          <div className="absolute right-3 top-12 z-20 flex flex-col gap-1">
+            {YT_CHANNELS.map((c) => {
+              const isActive = c.id === channel;
+              const hasFailed = failed[c.id];
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setChannel(c.id)}
+                  className={`rounded-sm px-1.5 py-0.5 text-left text-[9.5px] font-bold tracking-wider transition ${
+                    isActive
+                      ? "bg-amber-300 text-ink-950 ring-1 ring-amber-200"
+                      : hasFailed
+                        ? "bg-red-900/70 text-red-200 line-through hover:bg-red-800/70"
+                        : "bg-black/70 text-slate-200 hover:bg-black/90"
+                  }`}
+                  title={c.sub + (hasFailed ? " (failed)" : "")}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Top-right channel info */}
         <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-sm bg-black/55 px-1.5 py-0.5 font-mono text-[10px] text-slate-200">
@@ -1050,6 +1130,476 @@ function SocialCard({
 }
 
 // ─── Drone Feed ────────────────────────────────────────────────────────────
+
+// ─── Global Disaster Pulse · NASA EONET ───────────────────────────────────
+
+type EonetEvent = {
+  id: string;
+  title: string;
+  link: string;
+  closed: string | null;
+  categories: { id: string; title: string }[];
+  geometry: {
+    date: string;
+    type: string;
+    coordinates: any;
+    magnitudeValue?: number;
+    magnitudeUnit?: string;
+  }[];
+};
+
+const CAT_META: Record<
+  string,
+  { color: string; short: string; Icon: React.ComponentType<{ className?: string }> }
+> = {
+  wildfires: { color: "#ef4444", short: "Wildfires", Icon: Flame },
+  severeStorms: { color: "#a78bfa", short: "Storms", Icon: CloudRain },
+  floods: { color: "#22d3ee", short: "Floods", Icon: Droplets },
+  volcanoes: { color: "#f97316", short: "Volcanoes", Icon: Mountain },
+  drought: { color: "#fbbf24", short: "Drought", Icon: Sun },
+  earthquakes: { color: "#fb923c", short: "Quakes", Icon: AlertTriangle },
+  seaLakeIce: { color: "#bae6fd", short: "Ice", Icon: Snowflake },
+  landslides: { color: "#a3a3a3", short: "Landslides", Icon: Mountain },
+  snow: { color: "#e2e8f0", short: "Snow", Icon: Snowflake },
+  dustHaze: { color: "#d6d3d1", short: "Dust", Icon: Wind },
+  manmade: { color: "#84cc16", short: "Manmade", Icon: Factory },
+  tempExtremes: { color: "#fde047", short: "Temp", Icon: Thermometer },
+  waterColor: { color: "#06b6d4", short: "Water", Icon: Droplets },
+};
+
+function lastCoord(geom?: EonetEvent["geometry"]): [number, number] | null {
+  if (!geom || !geom.length) return null;
+  const last = geom[geom.length - 1];
+  const c = last?.coordinates;
+  if (!c) return null;
+  // Point: [lon, lat]
+  if (typeof c[0] === "number") return [c[0], c[1]];
+  // Polygon: [ [ [lon,lat], ... ] ] — take centroid of first ring
+  const ring = Array.isArray(c[0]) && Array.isArray(c[0][0]) ? c[0] : c;
+  if (!ring?.length) return null;
+  let sx = 0,
+    sy = 0;
+  for (const p of ring) {
+    sx += p[0];
+    sy += p[1];
+  }
+  return [sx / ring.length, sy / ring.length];
+}
+
+function timeAgoIso(iso: string) {
+  const t = new Date(iso).getTime();
+  if (!t) return "—";
+  const diff = Math.max(0, (Date.now() - t) / 1000);
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+// Equirectangular projection helpers — map lon/lat to %
+function projX(lon: number) {
+  return ((lon + 180) / 360) * 100;
+}
+function projY(lat: number) {
+  return ((90 - lat) / 180) * 100;
+}
+
+// Static fallback for when offline or live disabled
+const EONET_FALLBACK: { lat: number; lon: number; cat: string; title: string }[] = [
+  { lat: 38, lon: -120, cat: "wildfires", title: "Wildfires · California, USA" },
+  { lat: 26, lon: 92, cat: "floods", title: "Brahmaputra Flooding · Assam, India" },
+  { lat: 13, lon: 124, cat: "severeStorms", title: "Tropical Storm · Philippines" },
+  { lat: 37, lon: 15, cat: "volcanoes", title: "Mount Etna · Italy" },
+  { lat: -25, lon: 134, cat: "wildfires", title: "Wildfires · Northern Territory, AU" },
+  { lat: -15, lon: -60, cat: "wildfires", title: "Amazon Wildfires · Brazil" },
+  { lat: 14, lon: 38, cat: "drought", title: "Drought · Horn of Africa" },
+  { lat: 35, lon: -90, cat: "severeStorms", title: "Severe Storms · Mississippi Valley" },
+];
+
+function GlobalDisasterPulse({ live }: { live: boolean }) {
+  const [events, setEvents] = useState<EonetEvent[] | null>(null);
+  const [err, setErr] = useState(false);
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!live) {
+      setEvents(null);
+      setErr(false);
+      return;
+    }
+    let cancelled = false;
+    async function pull() {
+      try {
+        const res = await fetch(EONET_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error("eonet " + res.status);
+        const data = await res.json();
+        if (!cancelled) {
+          setEvents(data?.events ?? []);
+          setErr(false);
+        }
+      } catch (e) {
+        if (!cancelled) setErr(true);
+      }
+    }
+    pull();
+    const id = setInterval(pull, LIVE_REFRESH_MS * 5); // 5 min — EONET is slow-moving
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [live]);
+
+  // Build markers + recent list
+  const isLive = live && events !== null && !err;
+  const markers = useMemo(() => {
+    if (isLive && events) {
+      return events
+        .map((e) => {
+          const coord = lastCoord(e.geometry);
+          if (!coord) return null;
+          const [lon, lat] = coord;
+          const cat = e.categories?.[0]?.id ?? "manmade";
+          return { id: e.id, lon, lat, cat, title: e.title, link: e.link, geom: e.geometry };
+        })
+        .filter((x): x is NonNullable<typeof x> => !!x);
+    }
+    // Fallback static
+    return EONET_FALLBACK.map((f, i) => ({
+      id: `mock-${i}`,
+      lon: f.lon,
+      lat: f.lat,
+      cat: f.cat,
+      title: f.title,
+      link: "",
+      geom: undefined as any,
+    }));
+  }, [isLive, events]);
+
+  // Group by category
+  const byCat = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const x of markers) m.set(x.cat, (m.get(x.cat) ?? 0) + 1);
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+  }, [markers]);
+
+  // South Asia bbox: 60–100°E, 5–40°N
+  const southAsiaCount = markers.filter(
+    (m) => m.lon >= 60 && m.lon <= 100 && m.lat >= 5 && m.lat <= 40
+  ).length;
+
+  // Recent events (sorted by latest geometry date)
+  const recent = useMemo(() => {
+    const items = markers
+      .map((m) => {
+        const lastDate =
+          m.geom && m.geom.length
+            ? m.geom[m.geom.length - 1]?.date
+            : new Date().toISOString();
+        return { ...m, lastDate };
+      })
+      .sort((a, b) => +new Date(b.lastDate) - +new Date(a.lastDate))
+      .slice(0, 6);
+    return items;
+  }, [markers]);
+
+  return (
+    <div className="panel p-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 label-mini">
+          <Globe2 className="h-3 w-3 text-cyan-300" />
+          Global disaster pulse · NASA EONET
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-slate-400">
+          {isLive && (
+            <span className="flex items-center gap-1">
+              <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse-dot" />
+              live
+            </span>
+          )}
+          {!isLive && live && err && (
+            <span className="text-amber-300">EONET offline · fallback</span>
+          )}
+          {!live && <span className="text-slate-500">mock</span>}
+          <span className="font-mono tabular text-slate-200">
+            {markers.length} active
+          </span>
+          <span className="rounded-md border border-cyan-400/25 bg-cyan-400/[0.06] px-1.5 py-0.5 text-cyan-200">
+            South Asia: {southAsiaCount}
+          </span>
+        </div>
+      </div>
+
+      {/* Category counts strip */}
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {byCat.map(([catId, count]) => {
+          const meta = CAT_META[catId] ?? {
+            color: "#94a3b8",
+            short: catId,
+            Icon: AlertTriangle,
+          };
+          const Icon = meta.Icon;
+          return (
+            <span
+              key={catId}
+              className="inline-flex items-center gap-1 rounded-md border border-white/8 bg-white/[0.02] px-1.5 py-0.5 text-[10px]"
+              style={{ color: meta.color }}
+            >
+              <Icon className="h-2.5 w-2.5" />
+              <span className="text-slate-200">{meta.short}</span>
+              <span className="font-mono text-[10px] tabular text-slate-300">
+                {count}
+              </span>
+            </span>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_280px]">
+        {/* Equirectangular world map */}
+        <div className="relative overflow-hidden rounded-lg border border-white/8 bg-[#040810]">
+          <div
+            className="relative aspect-[2/1] w-full"
+            style={{
+              background:
+                "linear-gradient(180deg, #0a0f1a 0%, #06080d 40%, #04060a 100%)",
+            }}
+          >
+            {/* Lon/lat grid */}
+            <svg
+              viewBox="0 0 360 180"
+              preserveAspectRatio="none"
+              className="absolute inset-0 h-full w-full"
+            >
+              {/* meridians */}
+              {[-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map((m) => (
+                <line
+                  key={m}
+                  x1={projX(m) * 3.6}
+                  y1="0"
+                  x2={projX(m) * 3.6}
+                  y2="180"
+                  stroke="#1e293b"
+                  strokeWidth="0.3"
+                  opacity="0.45"
+                />
+              ))}
+              {/* parallels */}
+              {[-60, -30, 0, 30, 60].map((p) => (
+                <line
+                  key={p}
+                  x1="0"
+                  y1={projY(p) * 1.8}
+                  x2="360"
+                  y2={projY(p) * 1.8}
+                  stroke={p === 0 ? "#0e7490" : "#1e293b"}
+                  strokeWidth={p === 0 ? "0.5" : "0.3"}
+                  opacity={p === 0 ? "0.5" : "0.4"}
+                />
+              ))}
+
+              {/* Stylized continents — minimalist silhouettes */}
+              <ContinentShapes />
+
+              {/* India highlight box (60–100°E, 5–40°N) */}
+              <rect
+                x={projX(60) * 3.6}
+                y={projY(40) * 1.8}
+                width={(projX(100) - projX(60)) * 3.6}
+                height={(projY(5) - projY(40)) * 1.8}
+                fill="rgba(34,211,238,0.06)"
+                stroke="rgba(34,211,238,0.4)"
+                strokeWidth="0.3"
+                strokeDasharray="2 2"
+              />
+            </svg>
+
+            {/* Event dots */}
+            {markers.map((m) => {
+              const meta = CAT_META[m.cat];
+              const c = meta?.color ?? "#94a3b8";
+              const isHov = hovered === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onMouseEnter={() => setHovered(m.id)}
+                  onMouseLeave={() => setHovered(null)}
+                  onClick={() => m.link && window.open(m.link, "_blank")}
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `${projX(m.lon)}%`,
+                    top: `${projY(m.lat)}%`,
+                  }}
+                  title={m.title}
+                >
+                  <span
+                    className="block rounded-full"
+                    style={{
+                      width: isHov ? 8 : 5,
+                      height: isHov ? 8 : 5,
+                      background: c,
+                      boxShadow: `0 0 ${isHov ? 10 : 6}px ${c}, 0 0 0 1.5px ${c}55`,
+                      transition: "all 120ms ease",
+                    }}
+                  />
+                </button>
+              );
+            })}
+
+            {/* Hover tooltip */}
+            {hovered && (
+              <HoverTip
+                marker={markers.find((m) => m.id === hovered)!}
+              />
+            )}
+
+            {/* Map caption */}
+            <div className="pointer-events-none absolute bottom-1 left-2 font-mono text-[8.5px] uppercase tracking-wider text-slate-500">
+              Equirectangular · WGS84
+            </div>
+            <div className="pointer-events-none absolute bottom-1 right-2 font-mono text-[8.5px] uppercase tracking-wider text-cyan-400/70">
+              {markers.length} events plotted
+            </div>
+          </div>
+        </div>
+
+        {/* Recent events list */}
+        <div>
+          <div className="label-mini mb-1.5">Latest events</div>
+          <div className="max-h-[180px] space-y-1.5 overflow-y-auto pr-1">
+            {recent.map((e) => {
+              const meta = CAT_META[e.cat] ?? {
+                color: "#94a3b8",
+                short: e.cat,
+                Icon: AlertTriangle,
+              };
+              const Icon = meta.Icon;
+              return (
+                <a
+                  key={e.id}
+                  href={e.link || undefined}
+                  target={e.link ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="group flex items-start gap-2 rounded-md border border-white/8 bg-white/[0.02] px-2 py-1.5 text-[11px] hover:border-white/20"
+                  onMouseEnter={() => setHovered(e.id)}
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  <span
+                    className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm"
+                    style={{ color: meta.color, background: `${meta.color}1a` }}
+                  >
+                    <Icon className="h-2.5 w-2.5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-slate-100">{e.title}</span>
+                    <span className="flex items-center gap-1.5 text-[9.5px] text-slate-500">
+                      <span style={{ color: meta.color }}>{meta.short}</span>
+                      <span>·</span>
+                      <span className="font-mono">{timeAgoIso(e.lastDate)}</span>
+                      {e.link && (
+                        <ExternalLink className="ml-auto h-2.5 w-2.5 opacity-0 transition group-hover:opacity-100" />
+                      )}
+                    </span>
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+          <div className="mt-2 text-[9.5px] text-slate-500">
+            Source: <span className="text-cyan-300">eonet.gsfc.nasa.gov</span> · CC0 · refresh 5m
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HoverTip({
+  marker,
+}: {
+  marker: { lon: number; lat: number; title: string; cat: string };
+}) {
+  const meta = CAT_META[marker.cat];
+  // Position the tooltip relative to the marker; keep within bounds
+  const x = projX(marker.lon);
+  const y = projY(marker.lat);
+  const onRight = x > 50;
+  return (
+    <div
+      className="pointer-events-none absolute z-30 -translate-y-1/2 rounded-md border border-white/15 bg-ink-950/95 px-2 py-1 text-[10.5px] shadow-[0_4px_18px_rgba(0,0,0,0.7)] backdrop-blur-sm"
+      style={{
+        left: `${x}%`,
+        top: `${y}%`,
+        transform: onRight
+          ? "translate(calc(-100% - 12px), -50%)"
+          : "translate(12px, -50%)",
+        maxWidth: 220,
+      }}
+    >
+      <div className="flex items-center gap-1.5">
+        <span
+          className="inline-block h-1.5 w-1.5 rounded-full"
+          style={{ background: meta?.color ?? "#94a3b8" }}
+        />
+        <span style={{ color: meta?.color ?? "#94a3b8" }} className="font-semibold">
+          {meta?.short ?? marker.cat}
+        </span>
+      </div>
+      <div className="mt-0.5 text-slate-200">{marker.title}</div>
+      <div className="mt-0.5 font-mono text-[9.5px] text-slate-500">
+        {marker.lat.toFixed(1)}°{marker.lat >= 0 ? "N" : "S"} ·{" "}
+        {marker.lon.toFixed(1)}°{marker.lon >= 0 ? "E" : "W"}
+      </div>
+    </div>
+  );
+}
+
+// Stylized continent silhouettes — minimalist command-center aesthetic.
+// Coordinates are equirectangular (lon -180..180 → x 0..360, lat 90..-90 → y 0..180).
+function ContinentShapes() {
+  const fill = "rgba(56,189,248,0.08)";
+  const stroke = "rgba(56,189,248,0.35)";
+  return (
+    <g fill={fill} stroke={stroke} strokeWidth="0.35">
+      {/* North America */}
+      <path d="M50,30 Q70,20 95,28 L110,40 Q120,55 105,70 L90,80 L75,75 L60,65 L48,50 Z" />
+      {/* Greenland */}
+      <path d="M118,18 Q128,15 130,25 L125,35 Q120,40 115,32 Z" />
+      {/* Central America */}
+      <path d="M95,75 L102,78 L100,90 L90,87 Z" />
+      {/* South America */}
+      <path d="M100,90 Q115,95 118,110 L112,140 Q105,150 95,148 L88,135 L92,115 Z" />
+      {/* Europe */}
+      <path d="M170,40 Q185,35 200,40 L205,55 Q190,62 175,58 L168,48 Z" />
+      {/* Africa */}
+      <path d="M175,75 Q195,72 205,85 L210,115 Q200,135 188,140 L178,128 L172,105 Z" />
+      {/* Middle East */}
+      <path d="M210,65 L222,62 L225,75 L218,82 L212,78 Z" />
+      {/* Russia */}
+      <path d="M205,30 Q260,25 310,30 L312,45 Q280,52 245,50 L210,48 Z" />
+      {/* China / East Asia */}
+      <path d="M255,55 Q280,52 295,60 L300,75 Q280,80 265,78 L258,68 Z" />
+      {/* India */}
+      <path d="M250,75 L262,73 L268,85 Q263,95 256,98 L249,90 Z" />
+      {/* Southeast Asia */}
+      <path d="M275,85 L285,82 L290,92 L282,98 Z" />
+      {/* Indonesia */}
+      <path d="M285,100 L305,98 L308,108 L290,110 Z" />
+      {/* Philippines */}
+      <path d="M295,90 L300,88 L302,96 L297,98 Z" />
+      {/* Australia */}
+      <path d="M295,118 Q315,115 325,125 L322,135 Q305,140 295,135 L292,128 Z" />
+      {/* New Zealand */}
+      <path d="M335,140 L342,138 L344,148 L338,150 Z" />
+      {/* Japan */}
+      <path d="M310,55 L316,53 L318,63 L312,65 Z" />
+      {/* UK / Ireland */}
+      <path d="M163,42 L168,40 L170,48 L164,50 Z" />
+      {/* Madagascar */}
+      <path d="M218,118 L222,116 L224,128 L220,130 Z" />
+      {/* Antarctica strip */}
+      <path d="M0,170 L360,170 L360,180 L0,180 Z" opacity="0.6" />
+    </g>
+  );
+}
 
 function DroneFeed() {
   return (
