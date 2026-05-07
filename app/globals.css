@@ -1,0 +1,568 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://rsms.me/inter/inter.css");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap");
+
+/* Indic script utilities */
+.font-deva {
+  font-family: "Noto Sans Devanagari", "Inter", system-ui, sans-serif;
+  font-feature-settings: normal;
+}
+.font-bengali {
+  font-family: "Noto Sans Bengali", "Inter", system-ui, sans-serif;
+  font-feature-settings: normal;
+}
+
+:root {
+  --grid-color: rgba(34, 211, 238, 0.07);
+}
+
+html,
+body {
+  background: #06080d;
+  color: #e5e7eb;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0a0e15; }
+::-webkit-scrollbar-thumb {
+  background: #1b2230;
+  border-radius: 8px;
+  border: 2px solid #0a0e15;
+}
+::-webkit-scrollbar-thumb:hover { background: #272f3f; }
+
+/* Reusable utilities */
+.panel {
+  background: linear-gradient(180deg, rgba(19, 25, 36, 0.85) 0%, rgba(10, 14, 21, 0.85) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 1px 0 0 rgba(0, 0, 0, 0.4);
+}
+.panel-tight {
+  background: rgba(10, 14, 21, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  color: #cbd5e1;
+}
+.chip-ok { color: #6ee7b7; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+.chip-warn { color: #fcd34d; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+.chip-bad { color: #fca5a5; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+.chip-info { color: #67e8f9; border-color: rgba(34,211,238,0.3); background: rgba(34,211,238,0.08); }
+
+.kbd {
+  font-family: var(--font-mono, "JetBrains Mono"), monospace;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.04);
+  color: #94a3b8;
+}
+
+/* Background field for landing/dashboards */
+.bg-field {
+  background-color: #06080d;
+  background-image:
+    radial-gradient(60% 40% at 50% 0%, rgba(34,211,238,0.12) 0%, transparent 70%),
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+  background-size: auto, 56px 56px, 56px 56px;
+}
+
+.bg-grid-only {
+  background-color: #06080d;
+  background-image:
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* ── MapLibre GL theming ────────────────────────────────────────────────── */
+.maplibregl-map {
+  background: #0a0d14 !important;
+  font-family: inherit !important;
+}
+.maplibregl-canvas:focus { outline: none; }
+
+/* Controls */
+.maplibregl-ctrl-group {
+  background: rgba(10, 14, 21, 0.85) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.5) !important;
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+}
+.maplibregl-ctrl-group button {
+  background: transparent !important;
+  width: 30px !important;
+  height: 30px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+}
+.maplibregl-ctrl-group button:last-child { border-bottom: none !important; }
+.maplibregl-ctrl-group button:hover {
+  background: rgba(34, 211, 238, 0.12) !important;
+}
+.maplibregl-ctrl-icon {
+  filter: invert(0.85) hue-rotate(180deg) brightness(1.15);
+}
+
+/* Scale */
+.maplibregl-ctrl-scale {
+  background: rgba(10, 14, 21, 0.78) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top: none !important;
+  font-size: 10px !important;
+  padding: 1px 6px !important;
+  border-radius: 0 0 6px 6px !important;
+  font-family: "JetBrains Mono", ui-monospace, monospace !important;
+}
+
+/* Attribution */
+.maplibregl-ctrl-attrib {
+  background: rgba(10, 14, 21, 0.75) !important;
+  color: #94a3b8 !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 6px !important;
+  padding: 1px 8px !important;
+  font-size: 10px !important;
+}
+.maplibregl-ctrl-attrib a { color: #67e8f9 !important; }
+.maplibregl-ctrl-attrib-button {
+  background-color: rgba(10, 14, 21, 0.85) !important;
+}
+
+/* Popups */
+.maplibregl-popup.dr-popup .maplibregl-popup-content {
+  background: rgba(10, 14, 21, 0.95) !important;
+  color: #e5e7eb !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,211,238,0.08) !important;
+  padding: 10px 12px !important;
+  backdrop-filter: blur(8px);
+}
+.maplibregl-popup.dr-popup .maplibregl-popup-tip {
+  border-top-color: rgba(10, 14, 21, 0.95) !important;
+  border-bottom-color: rgba(10, 14, 21, 0.95) !important;
+  border-left-color: rgba(10, 14, 21, 0.95) !important;
+  border-right-color: rgba(10, 14, 21, 0.95) !important;
+}
+.leaflet-control-attribution,
+.leaflet-control-zoom a {
+  background: rgba(10, 14, 21, 0.85) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.leaflet-control-zoom a {
+  border-radius: 6px !important;
+  margin-bottom: 4px !important;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #0e131c !important;
+  color: #e5e7eb !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+}
+.leaflet-popup-content {
+  margin: 10px 14px !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+/* ── Custom DivIcon markers ──────────────────────────────────────────────── */
+
+/* Reset Leaflet's default icon container */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+@keyframes pulseRing {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes vehicleBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+/* Office marker — square dot inside ring */
+.dr-office {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1.5px solid currentColor;
+  background: rgba(0,0,0,0.55);
+}
+.dr-office::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.85;
+}
+.dr-office.is-head {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border-width: 2px;
+}
+.dr-office.is-head::after { inset: 4px; }
+.dr-office.is-head::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 12px;
+  border: 1.5px solid currentColor;
+  opacity: 0.4;
+  animation: pulseRing 2.2s ease-out infinite;
+}
+.dr-office.is-sub {
+  width: 14px;
+  height: 14px;
+}
+.dr-office.is-branch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.dr-office.is-branch::after { inset: 2px; border-radius: 1px; }
+
+/* Vehicle marker — small SVG truck */
+.dr-vehicle {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(8, 145, 178, 0.18);
+  border: 1px solid rgba(34,211,238,0.6);
+  color: #67e8f9;
+  box-shadow: 0 0 12px rgba(34,211,238,0.25);
+  animation: vehicleBob 2s ease-in-out infinite;
+}
+.dr-vehicle.dr-vehicle-bike { background: rgba(132,204,22,0.16); border-color: rgba(132,204,22,0.6); color: #d9f99d; }
+.dr-vehicle.dr-vehicle-boat { background: rgba(56,189,248,0.18); border-color: rgba(56,189,248,0.6); color: #bae6fd; }
+.dr-vehicle.dr-vehicle-hgv  { background: rgba(245,158,11,0.16); border-color: rgba(245,158,11,0.55); color: #fde68a; }
+
+/* GDS marker — pulsing blue dot */
+.dr-gds {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #38bdf8;
+  border: 1.5px solid #0ea5e9;
+  box-shadow: 0 0 8px rgba(56,189,248,0.6);
+}
+.dr-gds::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1.5px solid #38bdf8;
+  opacity: 0.5;
+  animation: pulseRing 1.8s ease-out infinite;
+}
+
+/* Damaged road X marker */
+.dr-damage {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+}
+.dr-damage::before,
+.dr-damage::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  box-shadow: 0 0 6px rgba(239,68,68,0.6);
+}
+.dr-damage::before { transform: rotate(45deg); }
+.dr-damage::after  { transform: rotate(-45deg); }
+
+/* District label */
+.dr-district-label {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+  text-shadow:
+    0 0 4px rgba(0,0,0,0.9),
+    0 0 8px rgba(0,0,0,0.7);
+  white-space: nowrap;
+  pointer-events: none;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.dr-district-label::before { content: none !important; }
+
+.dashed-anim {
+  stroke-dasharray: 8 6;
+  animation: dash 1s linear infinite;
+}
+@keyframes dash { to { stroke-dashoffset: -28; } }
+
+/* Subtle scanline overlay for hero sections */
+.scanlines {
+  position: relative;
+}
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.01) 0px,
+    rgba(255, 255, 255, 0.01) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  pointer-events: none;
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #67e8f9 0%, #a5f3fc 50%, #f5d0fe 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+}
+
+button { -webkit-tap-highlight-color: transparent; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: #e5e7eb;
+  transition: all 120ms ease;
+}
+.btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18); }
+.btn-primary {
+  background: linear-gradient(180deg, #22d3ee 0%, #0891b2 100%);
+  color: #0a0e15;
+  border-color: rgba(34,211,238,0.55);
+  box-shadow: 0 0 0 1px rgba(34,211,238,0.4), 0 6px 18px rgba(34,211,238,0.25);
+  font-weight: 600;
+}
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-danger {
+  background: rgba(239,68,68,0.12);
+  color: #fca5a5;
+  border-color: rgba(239,68,68,0.35);
+}
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-ghost { background: transparent; border-color: transparent; color: #94a3b8; }
+.btn-ghost:hover { color: #e5e7eb; background: rgba(255,255,255,0.04); }
+
+.label-mini {
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ── Situation Room (TV / CCTV / chyron / gauge) ───────────────────────── */
+
+/* CRT scanlines on TV / CCTV tiles */
+.tv-scanlines {
+  position: relative;
+}
+.tv-scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.04) 0px,
+    rgba(255,255,255,0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+  z-index: 5;
+}
+.tv-vignette {
+  position: relative;
+}
+.tv-vignette::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 120% at 50% 50%, transparent 50%, rgba(0,0,0,0.55) 100%);
+  z-index: 4;
+}
+
+/* Animated noise — subtle */
+@keyframes noiseShift {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-3%, 1%); }
+  40% { transform: translate(2%, -2%); }
+  60% { transform: translate(-1%, 3%); }
+  80% { transform: translate(3%, 0%); }
+  100% { transform: translate(0, 0); }
+}
+.cctv-noise {
+  position: relative;
+}
+.cctv-noise::after {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+  opacity: 0.18;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: noiseShift 0.6s steps(6) infinite;
+  z-index: 3;
+}
+
+/* REC blinking indicator */
+@keyframes recBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+.rec-blink {
+  animation: recBlink 1.1s steps(2) infinite;
+}
+
+/* Chyron marquee */
+@keyframes chyronScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.chyron-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: chyronScroll 38s linear infinite;
+}
+
+/* Doordarshan-style red lower-third sweep */
+@keyframes ddSheen {
+  0% { background-position: -200% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.dd-sheen {
+  background: linear-gradient(110deg, #b91c1c 0%, #ef4444 35%, #fbbf24 50%, #ef4444 65%, #b91c1c 100%);
+  background-size: 200% 100%;
+  animation: ddSheen 6s ease-in-out infinite;
+}
+
+/* River gauge water animation */
+@keyframes waterShimmer {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.gauge-water-fill {
+  background: linear-gradient(
+    180deg,
+    rgba(34,211,238,0.0) 0%,
+    rgba(34,211,238,0.18) 6%,
+    rgba(8,145,178,0.65) 30%,
+    rgba(7,89,133,0.92) 100%
+  );
+  position: relative;
+  overflow: hidden;
+}
+.gauge-water-fill::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(165,243,252,0.55);
+  filter: blur(1.2px);
+  animation: waterShimmer 2.4s ease-in-out infinite;
+}
+
+/* Frustum-style drone scan rotating */
+@keyframes droneSweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.drone-sweep {
+  animation: droneSweep 7s linear infinite;
+  transform-origin: center;
+}
+
+/* Subtle CRT flicker */
+@keyframes crtFlicker {
+  0%, 96%, 100% { opacity: 1; }
+  97% { opacity: 0.85; }
+  98% { opacity: 1; }
+  99% { opacity: 0.93; }
+}
+.tv-flicker { animation: crtFlicker 5s steps(20) infinite; }
+
+/* Dotted gauge ticks */
+.gauge-tick {
+  position: absolute;
+  right: 100%;
+  margin-right: 6px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
