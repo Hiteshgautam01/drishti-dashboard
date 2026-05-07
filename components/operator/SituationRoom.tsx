@@ -289,6 +289,44 @@ function NewsTelecast({ live }: { live: boolean }) {
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black tv-scanlines tv-vignette tv-flicker">
+      {/* Channel switcher bar — sits ABOVE the video, never clips broadcast */}
+      {live && (
+        <div className="flex items-center gap-1.5 border-b border-white/10 bg-black/85 px-2 py-1.5 backdrop-blur-sm">
+          <span className="flex items-center gap-1 rounded-sm bg-red-600 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-white">
+            <span className="h-1 w-1 rounded-full bg-white rec-blink" />
+            LIVE
+          </span>
+          <span className="text-[9px] uppercase tracking-wider text-slate-500">
+            channel
+          </span>
+          <div className="flex flex-1 items-center gap-1 overflow-x-auto">
+            {YT_CHANNELS.map((c) => {
+              const isActive = c.id === channel;
+              const hasFailed = failed[c.id];
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setChannel(c.id)}
+                  className={`shrink-0 rounded-sm px-1.5 py-0.5 text-[9.5px] font-bold tracking-wider transition ${
+                    isActive
+                      ? "bg-amber-300 text-ink-950 ring-1 ring-amber-200"
+                      : hasFailed
+                        ? "bg-red-900/60 text-red-200 line-through hover:bg-red-800/70"
+                        : "bg-white/[0.04] text-slate-300 hover:bg-white/[0.1]"
+                  }`}
+                  title={c.sub + (hasFailed ? " (failed)" : "")}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+          <span className="shrink-0 font-mono text-[9px] text-slate-500">
+            {activeChannel.sub}
+          </span>
+        </div>
+      )}
+
       <div className="relative aspect-[16/9] w-full">
         {showIframe ? (
           <iframe
@@ -307,78 +345,58 @@ function NewsTelecast({ live }: { live: boolean }) {
           <NewsBackdrop />
         )}
 
-        {/* Top-left LIVE badge */}
-        <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-1.5">
-          <span className="flex items-center gap-1 rounded-sm bg-red-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white">
-            <span className="h-1.5 w-1.5 rounded-full bg-white rec-blink" />
-            LIVE
-          </span>
-          <span className="rounded-sm bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-amber-300">
-            {showIframe ? `${activeChannel.label} · YT` : "MOCK"}
-          </span>
-        </div>
-
-        {/* Channel switcher — pointer-events enabled so the user can pick */}
-        {live && (
-          <div className="absolute right-3 top-12 z-20 flex flex-col gap-1">
-            {YT_CHANNELS.map((c) => {
-              const isActive = c.id === channel;
-              const hasFailed = failed[c.id];
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setChannel(c.id)}
-                  className={`rounded-sm px-1.5 py-0.5 text-left text-[9.5px] font-bold tracking-wider transition ${
-                    isActive
-                      ? "bg-amber-300 text-ink-950 ring-1 ring-amber-200"
-                      : hasFailed
-                        ? "bg-red-900/70 text-red-200 line-through hover:bg-red-800/70"
-                        : "bg-black/70 text-slate-200 hover:bg-black/90"
-                  }`}
-                  title={c.sub + (hasFailed ? " (failed)" : "")}
-                >
-                  {c.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Top-right channel info */}
-        <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-sm bg-black/55 px-1.5 py-0.5 font-mono text-[10px] text-slate-200">
-          24×7 · HD
-        </div>
-
-        {/* Lower third — title (semi-transparent over real broadcast) */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-[42px] z-20">
-          <div className={`dd-sheen px-4 py-2 ${showIframe ? "opacity-90" : ""}`}>
-            <div className="font-display text-[12px] font-bold uppercase tracking-wider text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]">
-              असम बाढ़ · राष्ट्रीय आपदा · LIVE COVERAGE
+        {/*
+          Mock-only overlays: the real broadcast already has its own LIVE badge,
+          ticker, and lower-third — drawing ours on top would clip the actual
+          news content. We only show our overlays when the iframe is OFF
+          (mock mode, network failure, or live-feeds toggle off).
+        */}
+        {!showIframe && (
+          <>
+            <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-1.5">
+              <span className="flex items-center gap-1 rounded-sm bg-red-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white">
+                <span className="h-1.5 w-1.5 rounded-full bg-white rec-blink" />
+                LIVE
+              </span>
+              <span className="rounded-sm bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-amber-300">
+                MOCK · DD NEWS
+              </span>
             </div>
-          </div>
-          <div
-            key={headlineIdx}
-            className={`px-4 py-1.5 text-[11.5px] font-semibold leading-tight text-amber-100 animate-fade-in ${showIframe ? "bg-black/80" : "bg-black/85"}`}
-            style={{
-              fontFamily:
-                /[ঀ-৿]/.test(NEWS_HEADLINES[headlineIdx])
-                  ? "Noto Sans Bengali, Inter, sans-serif"
-                  : /[ऀ-ॿ]/.test(NEWS_HEADLINES[headlineIdx])
-                    ? "Noto Sans Devanagari, Inter, sans-serif"
-                    : "Inter, sans-serif",
-            }}
-          >
-            {NEWS_HEADLINES[headlineIdx]}
-          </div>
-        </div>
 
-        {/* Chyron marquee at bottom */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 overflow-hidden bg-red-700 py-1">
-          <div className="chyron-track text-[10.5px] font-bold uppercase tracking-wider text-white">
-            <ChyronLoop />
-            <ChyronLoop />
-          </div>
-        </div>
+            <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-sm bg-black/55 px-1.5 py-0.5 font-mono text-[10px] text-slate-200">
+              24×7 · HD
+            </div>
+
+            <div className="pointer-events-none absolute inset-x-0 bottom-[42px] z-20">
+              <div className="dd-sheen px-4 py-2">
+                <div className="font-display text-[12px] font-bold uppercase tracking-wider text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]">
+                  असम बाढ़ · राष्ट्रीय आपदा · LIVE COVERAGE
+                </div>
+              </div>
+              <div
+                key={headlineIdx}
+                className="bg-black/85 px-4 py-1.5 text-[11.5px] font-semibold leading-tight text-amber-100 animate-fade-in"
+                style={{
+                  fontFamily:
+                    /[ঀ-৿]/.test(NEWS_HEADLINES[headlineIdx])
+                      ? "Noto Sans Bengali, Inter, sans-serif"
+                      : /[ऀ-ॿ]/.test(NEWS_HEADLINES[headlineIdx])
+                        ? "Noto Sans Devanagari, Inter, sans-serif"
+                        : "Inter, sans-serif",
+                }}
+              >
+                {NEWS_HEADLINES[headlineIdx]}
+              </div>
+            </div>
+
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 overflow-hidden bg-red-700 py-1">
+              <div className="chyron-track text-[10.5px] font-bold uppercase tracking-wider text-white">
+                <ChyronLoop />
+                <ChyronLoop />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
