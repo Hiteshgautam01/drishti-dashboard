@@ -34,9 +34,12 @@ import {
 // client-side; if any one fails we fall back to the static mocks so the demo
 // stays presentable on bad networks.
 
-// YouTube live channels — `live_stream?channel=ID` always resolves to the
-// channel's current live broadcast. We default to DW News (rock-solid 24/7
-// English international) and offer WION as an Indian-context alternate.
+// YouTube live channels — `live_stream?channel=ID` resolves to the channel's
+// *currently-live* broadcast. If a channel goes offline (most do, periodically),
+// the iframe shows YouTube's grey error page. We mitigate by:
+//   1. Using the youtube-nocookie domain (more permissive — fewer cookie blocks)
+//   2. Offering many channels so one is almost always live
+//   3. Showing a clear loading + "may be offline" overlay so the user can switch
 const YT_CHANNELS = [
   {
     id: "dw",
@@ -45,10 +48,10 @@ const YT_CHANNELS = [
     channelId: "UCknLrEdhRCp1aegoMqRaCZg",
   },
   {
-    id: "wion",
-    label: "WION",
-    sub: "English · India",
-    channelId: "UC_gUM8rL-Lrg6O3adPW9K1g",
+    id: "f24",
+    label: "FRANCE 24",
+    sub: "English · France",
+    channelId: "UCQfwfsi5VrQ8yKZ-UWmAEFg",
   },
   {
     id: "aje",
@@ -56,10 +59,32 @@ const YT_CHANNELS = [
     sub: "English · Qatar",
     channelId: "UCNye-wNBqNL5ZzHSJj3l8Bg",
   },
+  {
+    id: "wion",
+    label: "WION",
+    sub: "English · India",
+    channelId: "UC_gUM8rL-Lrg6O3adPW9K1g",
+  },
+  {
+    id: "nhk",
+    label: "NHK WORLD",
+    sub: "English · Japan",
+    channelId: "UCSPEjw8F2nQDtmUKPFNF7_A",
+  },
+  {
+    id: "bbg",
+    label: "BLOOMBERG",
+    sub: "Originals · USA",
+    channelId: "UCIALMKvObZNtJ6AmdCLP7Lg",
+  },
 ] as const;
 type YtChannelId = (typeof YT_CHANNELS)[number]["id"];
-function ytLiveUrl(channelId: string) {
-  return `https://www.youtube.com/embed/live_stream?channel=${channelId}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1`;
+function ytLiveUrl(channelId: string, cacheBust = 0) {
+  // youtube-nocookie.com handles privacy-protective embeds better than
+  // youtube.com (no third-party cookies => fewer ad-blocker / extension hits).
+  // cacheBust forces a remount when the user hits "refresh".
+  const cb = cacheBust ? `&_=${cacheBust}` : "";
+  return `https://www.youtube-nocookie.com/embed/live_stream?channel=${channelId}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1${cb}`;
 }
 
 // Open-Meteo — Guwahati (Brahmaputra at LGB Intl Airport). No key, no quota.
@@ -242,13 +267,19 @@ function Header({ live, setLive }: { live: boolean; setLive: (v: boolean) => voi
 function NewsTelecast({ live }: { live: boolean }) {
   const [headlineIdx, setHeadlineIdx] = useState(0);
   const [channel, setChannel] = useState<YtChannelId>("dw");
-  // Per-channel failure tracking so we can show a "tile failed" state without
-  // permanently disabling all iframes.
-  const [failed, setFailed] = useState<Record<YtChannelId, boolean>>({
-    dw: false,
-    wion: false,
-    aje: false,
-  });
+  // Per-channel failure tracking — set when user explicitly marks "offline"
+  const [failed, setFailed] = useState<Record<YtChannelId, boolean>>(
+    Object.fromEntries(YT_CHANNELS.map((c) => [c.id, false])) as Record<
+      YtChannelId,
+      boolean
+    >,
+  );
+  // Force a remount of the iframe (refresh button)
+  const [cacheBust, setCacheBust] = useState(0);
+  // Loading overlay shown for the first ~3.5s after channel switch / refresh /
+  // entering live mode, so users have a clear "the broadcast is loading"
+  // state instead of staring at a blank iframe.
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const id = setInterval(() => setHeadlineIdx((i) => (i + 1) % NEWS_HEADLINES.length), 5500);
@@ -257,11 +288,38 @@ function NewsTelecast({ live }: { live: boolean }) {
 
   // Reset failure state when re-entering live mode
   useEffect(() => {
-    if (live) setFailed({ dw: false, wion: false, aje: false });
+    if (live) {
+      setFailed(
+        Object.fromEntries(YT_CHANNELS.map((c) => [c.id, false])) as Record<
+          YtChannelId,
+          boolean
+        >,
+      );
+    }
   }, [live]);
+
+  // Re-arm loading timer on channel switch / refresh / re-entering live
+  useEffect(() => {
+    if (!live) return;
+    setLoading(true);
+    const t = setTimeout(() => setLoading(false), 3500);
+    return () => clearTimeout(t);
+  }, [channel, cacheBust, live]);
 
   const activeChannel = YT_CHANNELS.find((c) => c.id === channel)!;
   const showIframe = live && !failed[channel];
+
+  function refresh() {
+    setCacheBust(Date.now());
+  }
+  function nextChannel() {
+    const idx = YT_CHANNELS.findIndex((c) => c.id === channel);
+    const next = YT_CHANNELS[(idx + 1) % YT_CHANNELS.length];
+    setChannel(next.id);
+  }
+  function markOffline() {
+    setFailed((f) => ({ ...f, [channel]: true }));
+  }
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black tv-scanlines tv-vignette tv-flicker">
@@ -271,9 +329,6 @@ function NewsTelecast({ live }: { live: boolean }) {
           <span className="flex items-center gap-1 rounded-sm bg-red-600 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-white">
             <span className="h-1 w-1 rounded-full bg-white rec-blink" />
             LIVE
-          </span>
-          <span className="text-[9px] uppercase tracking-wider text-slate-500">
-            channel
           </span>
           <div className="flex flex-1 items-center gap-1 overflow-x-auto">
             {YT_CHANNELS.map((c) => {
@@ -297,28 +352,82 @@ function NewsTelecast({ live }: { live: boolean }) {
               );
             })}
           </div>
-          <span className="shrink-0 font-mono text-[9px] text-slate-500">
-            {activeChannel.sub}
-          </span>
+          <button
+            onClick={refresh}
+            className="shrink-0 rounded-sm border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-slate-300 hover:bg-white/[0.1]"
+            title="Reload broadcast"
+          >
+            ↻ Refresh
+          </button>
         </div>
       )}
 
       <div className="relative aspect-[16/9] w-full">
         {showIframe ? (
           <iframe
-            // key forces the iframe to remount when channel changes — important
-            // because YouTube embeds don't always replace src cleanly.
-            key={activeChannel.channelId}
-            src={ytLiveUrl(activeChannel.channelId)}
+            // key forces the iframe to remount when channel or cacheBust
+            // changes — YouTube embeds don't always replace src cleanly.
+            key={`${activeChannel.channelId}-${cacheBust}`}
+            src={ytLiveUrl(activeChannel.channelId, cacheBust)}
             title={`${activeChannel.label} Live`}
             className="absolute inset-0 h-full w-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
+            onLoad={() => setLoading(false)}
             onError={() => setFailed((f) => ({ ...f, [channel]: true }))}
           />
         ) : (
           <NewsBackdrop />
+        )}
+
+        {/* Loading overlay — shown for first 3.5s after channel switch / refresh */}
+        {showIframe && loading && (
+          <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/65 backdrop-blur-sm">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2 rounded-md border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute h-full w-full animate-ping rounded-full bg-cyan-400/60" />
+                  <span className="relative h-2 w-2 rounded-full bg-cyan-400" />
+                </span>
+                <span className="text-[10.5px] uppercase tracking-wider text-cyan-200">
+                  Connecting · {activeChannel.label}
+                </span>
+              </div>
+              <span className="mt-1 text-[9.5px] text-slate-400">
+                YouTube live · may take a few seconds
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Discreet help link — always available during live mode so users
+            can recover from an offline channel without auto-pops covering
+            a working broadcast. Sits above the chyron, subtle styling. */}
+        {showIframe && !loading && (
+          <div className="pointer-events-auto absolute bottom-12 right-2 z-30">
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center gap-1 rounded-sm bg-black/55 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-slate-400 backdrop-blur-sm hover:bg-black/75 hover:text-slate-200">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                Offline?
+              </summary>
+              <div className="absolute bottom-full right-0 mb-1 flex flex-col items-end gap-1">
+                <button
+                  onClick={nextChannel}
+                  className="whitespace-nowrap rounded-sm bg-cyan-400/20 px-2 py-0.5 text-[9.5px] font-bold tracking-wider text-cyan-100 backdrop-blur-sm hover:bg-cyan-400/30"
+                >
+                  Try next channel
+                </button>
+                <button
+                  onClick={markOffline}
+                  className="whitespace-nowrap rounded-sm bg-white/15 px-2 py-0.5 text-[9.5px] font-bold tracking-wider text-slate-100 backdrop-blur-sm hover:bg-white/25"
+                  title="Mark offline and use mock newsroom"
+                >
+                  Use mock newsroom
+                </button>
+              </div>
+            </details>
+          </div>
         )}
 
         {/*
