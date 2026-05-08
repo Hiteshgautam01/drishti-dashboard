@@ -6,7 +6,6 @@ import {
   Camera,
   Radio,
   Waves,
-  Plane,
   AlertTriangle,
   Heart,
   MessageCircle,
@@ -96,6 +95,9 @@ const NEWS_HEADLINES = [
   "WORLD BANK · ₹37.5 Cr PARAMETRIC TRIGGER RELEASED · IPPB DISBURSEMENT IN PROGRESS",
 ];
 
+// CCTV feeds — kept the two thematically critical cameras (the bridge under
+// flood threat and the river itself). Office-front and relief-camp tiles were
+// pure decoration with no information payload.
 const CCTV_FEEDS = [
   {
     id: "CAM-07",
@@ -103,20 +105,6 @@ const CCTV_FEEDS = [
     digipin: "FK4-7M3-J9PR",
     tone: "danger" as const,
     icon: "bridge" as const,
-  },
-  {
-    id: "CAM-12",
-    label: "Nagaon H.O · Front",
-    digipin: "FK4-7M2-A2BC",
-    tone: "ok" as const,
-    icon: "office" as const,
-  },
-  {
-    id: "CAM-19",
-    label: "Morigaon · Relief Camp",
-    digipin: "FK4-7M3-K2ML",
-    tone: "info" as const,
-    icon: "camp" as const,
   },
   {
     id: "CAM-04",
@@ -201,11 +189,8 @@ export function SituationRoom() {
         {/* Global pulse — full width, proves the global-scale claim */}
         <GlobalDisasterPulse live={live} />
 
-        {/* Bottom row: Drone + Call center */}
-        <div className="grid gap-3 lg:grid-cols-2">
-          <DroneFeed />
-          <CallCenter />
-        </div>
+        {/* Helpline queue */}
+        <CallCenter />
       </div>
     </div>
   );
@@ -467,11 +452,11 @@ function CctvGrid() {
       <div className="mb-2 flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400">
           <Camera className="h-3 w-3 text-cyan-300" />
-          CCTV GRID · 4 of 38 cameras
+          CCTV · priority cameras
         </div>
         <div className="flex items-center gap-1 text-[9.5px] text-slate-500">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
-          all online
+          {CCTV_FEEDS.length} live
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -555,7 +540,7 @@ function CctvTile({ feed }: { feed: (typeof CCTV_FEEDS)[number] }) {
   );
 }
 
-function CctvScene({ icon }: { icon: "bridge" | "office" | "camp" | "river" }) {
+function CctvScene({ icon }: { icon: "bridge" | "river" }) {
   if (icon === "bridge") {
     return (
       <svg viewBox="0 0 200 150" className="absolute inset-0 h-full w-full opacity-85">
@@ -596,78 +581,6 @@ function CctvScene({ icon }: { icon: "bridge" | "office" | "camp" | "river" }) {
         {/* debris */}
         <rect x="60" y="100" width="6" height="2" fill="#78350f" transform="rotate(15 63 101)" />
         <rect x="140" y="115" width="8" height="2" fill="#78350f" transform="rotate(-12 144 116)" />
-      </svg>
-    );
-  }
-  if (icon === "office") {
-    return (
-      <svg viewBox="0 0 200 150" className="absolute inset-0 h-full w-full opacity-90">
-        <defs>
-          <linearGradient id="sky-o" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#1e3a5f" />
-            <stop offset="1" stopColor="#0f1e2e" />
-          </linearGradient>
-        </defs>
-        <rect width="200" height="100" fill="url(#sky-o)" />
-        <rect y="100" width="200" height="50" fill="#111827" />
-        {/* India Post building */}
-        <rect x="40" y="55" width="120" height="50" fill="#7c2d12" />
-        <rect x="40" y="50" width="120" height="6" fill="#92400e" />
-        {/* Sign */}
-        <rect x="60" y="62" width="80" height="12" fill="#fef3c7" />
-        <text x="100" y="71" textAnchor="middle" fontSize="8" fontWeight="700" fill="#7c2d12" fontFamily="serif">
-          INDIA POST
-        </text>
-        {/* Door */}
-        <rect x="92" y="80" width="16" height="25" fill="#1f2937" />
-        {/* Windows lit */}
-        <rect x="50" y="80" width="14" height="10" fill="#fbbf24" opacity="0.7">
-          <animate attributeName="opacity" dur="4s" repeatCount="indefinite"
-            values="0.7; 0.4; 0.7" />
-        </rect>
-        <rect x="136" y="80" width="14" height="10" fill="#fbbf24" opacity="0.6" />
-        {/* India flag pole */}
-        <line x1="170" y1="50" x2="170" y2="100" stroke="#94a3b8" strokeWidth="1" />
-        <rect x="170" y="50" width="14" height="3" fill="#f97316" />
-        <rect x="170" y="53" width="14" height="3" fill="#fef3c7" />
-        <rect x="170" y="56" width="14" height="3" fill="#15803d" />
-        {/* Person silhouette */}
-        <ellipse cx="80" cy="115" rx="3" ry="4" fill="#1f2937" />
-        <rect x="77" y="118" width="6" height="12" fill="#1f2937" />
-      </svg>
-    );
-  }
-  if (icon === "camp") {
-    return (
-      <svg viewBox="0 0 200 150" className="absolute inset-0 h-full w-full opacity-90">
-        <defs>
-          <linearGradient id="sky-c" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#1e293b" />
-            <stop offset="1" stopColor="#0c4a6e" />
-          </linearGradient>
-        </defs>
-        <rect width="200" height="100" fill="url(#sky-c)" />
-        <rect y="100" width="200" height="50" fill="#3f2c1a" />
-        {/* tents */}
-        {[20, 70, 120, 165].map((x, i) => (
-          <g key={i}>
-            <path d={`M${x} 100 L${x + 18} 75 L${x + 36} 100 Z`} fill="#0e7490" />
-            <rect x={x + 14} y="86" width="8" height="14" fill="#075985" />
-          </g>
-        ))}
-        {/* people */}
-        <g fill="#1f2937">
-          <ellipse cx="60" cy="118" rx="2" ry="3" />
-          <rect x="58.5" y="120" width="3" height="8" />
-          <ellipse cx="100" cy="120" rx="2" ry="3" />
-          <rect x="98.5" y="122" width="3" height="8" />
-          <ellipse cx="140" cy="115" rx="2" ry="3" />
-          <rect x="138.5" y="117" width="3" height="8" />
-        </g>
-        {/* lantern glow */}
-        <circle cx="105" cy="92" r="6" fill="#fbbf24" opacity="0.45">
-          <animate attributeName="opacity" dur="3s" repeatCount="indefinite" values="0.45;0.7;0.45" />
-        </circle>
       </svg>
     );
   }
@@ -1414,9 +1327,6 @@ function GlobalDisasterPulse({ live }: { live: boolean }) {
                 />
               ))}
 
-              {/* Stylized continents — minimalist silhouettes */}
-              <ContinentShapes />
-
               {/* India highlight box (60–100°E, 5–40°N) */}
               <rect
                 x={projX(60) * 3.6}
@@ -1565,171 +1475,6 @@ function HoverTip({
       <div className="mt-0.5 font-mono text-[9.5px] text-slate-500">
         {marker.lat.toFixed(1)}°{marker.lat >= 0 ? "N" : "S"} ·{" "}
         {marker.lon.toFixed(1)}°{marker.lon >= 0 ? "E" : "W"}
-      </div>
-    </div>
-  );
-}
-
-// Stylized continent silhouettes — minimalist command-center aesthetic.
-// Coordinates are equirectangular (lon -180..180 → x 0..360, lat 90..-90 → y 0..180).
-function ContinentShapes() {
-  const fill = "rgba(56,189,248,0.08)";
-  const stroke = "rgba(56,189,248,0.35)";
-  return (
-    <g fill={fill} stroke={stroke} strokeWidth="0.35">
-      {/* North America */}
-      <path d="M50,30 Q70,20 95,28 L110,40 Q120,55 105,70 L90,80 L75,75 L60,65 L48,50 Z" />
-      {/* Greenland */}
-      <path d="M118,18 Q128,15 130,25 L125,35 Q120,40 115,32 Z" />
-      {/* Central America */}
-      <path d="M95,75 L102,78 L100,90 L90,87 Z" />
-      {/* South America */}
-      <path d="M100,90 Q115,95 118,110 L112,140 Q105,150 95,148 L88,135 L92,115 Z" />
-      {/* Europe */}
-      <path d="M170,40 Q185,35 200,40 L205,55 Q190,62 175,58 L168,48 Z" />
-      {/* Africa */}
-      <path d="M175,75 Q195,72 205,85 L210,115 Q200,135 188,140 L178,128 L172,105 Z" />
-      {/* Middle East */}
-      <path d="M210,65 L222,62 L225,75 L218,82 L212,78 Z" />
-      {/* Russia */}
-      <path d="M205,30 Q260,25 310,30 L312,45 Q280,52 245,50 L210,48 Z" />
-      {/* China / East Asia */}
-      <path d="M255,55 Q280,52 295,60 L300,75 Q280,80 265,78 L258,68 Z" />
-      {/* India */}
-      <path d="M250,75 L262,73 L268,85 Q263,95 256,98 L249,90 Z" />
-      {/* Southeast Asia */}
-      <path d="M275,85 L285,82 L290,92 L282,98 Z" />
-      {/* Indonesia */}
-      <path d="M285,100 L305,98 L308,108 L290,110 Z" />
-      {/* Philippines */}
-      <path d="M295,90 L300,88 L302,96 L297,98 Z" />
-      {/* Australia */}
-      <path d="M295,118 Q315,115 325,125 L322,135 Q305,140 295,135 L292,128 Z" />
-      {/* New Zealand */}
-      <path d="M335,140 L342,138 L344,148 L338,150 Z" />
-      {/* Japan */}
-      <path d="M310,55 L316,53 L318,63 L312,65 Z" />
-      {/* UK / Ireland */}
-      <path d="M163,42 L168,40 L170,48 L164,50 Z" />
-      {/* Madagascar */}
-      <path d="M218,118 L222,116 L224,128 L220,130 Z" />
-      {/* Antarctica strip */}
-      <path d="M0,170 L360,170 L360,180 L0,180 Z" opacity="0.6" />
-    </g>
-  );
-}
-
-function DroneFeed() {
-  return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black p-0 tv-scanlines cctv-noise">
-      <div className="relative aspect-[16/9] w-full">
-        {/* fake terrain */}
-        <svg viewBox="0 0 200 112" className="absolute inset-0 h-full w-full opacity-90">
-          <defs>
-            <radialGradient id="terrain" cx="50%" cy="50%" r="60%">
-              <stop offset="0" stopColor="#1f2937" />
-              <stop offset="0.6" stopColor="#0f172a" />
-              <stop offset="1" stopColor="#020617" />
-            </radialGradient>
-          </defs>
-          <rect width="200" height="112" fill="url(#terrain)" />
-          {/* river */}
-          <path
-            d="M-10 30 Q 60 50 100 40 T 220 70"
-            stroke="#7c2d12"
-            strokeWidth="14"
-            fill="none"
-            opacity="0.85"
-          />
-          <path
-            d="M-10 30 Q 60 50 100 40 T 220 70"
-            stroke="#fbbf24"
-            strokeWidth="0.6"
-            fill="none"
-            opacity="0.55"
-          />
-          {/* villages as small dots */}
-          {[
-            [50, 70],
-            [80, 90],
-            [120, 60],
-            [150, 80],
-            [40, 95],
-            [170, 50],
-          ].map(([x, y], i) => (
-            <g key={i}>
-              <rect x={x - 1} y={y - 1} width="2" height="2" fill="#ef4444" opacity="0.85" />
-              <circle cx={x} cy={y} r="3" fill="none" stroke="#ef4444" strokeOpacity="0.45">
-                <animate
-                  attributeName="r"
-                  values="3;7;3"
-                  dur={`${2 + i * 0.3}s`}
-                  repeatCount="indefinite"
-                />
-                <animate
-                  attributeName="stroke-opacity"
-                  values="0.7;0;0.7"
-                  dur={`${2 + i * 0.3}s`}
-                  repeatCount="indefinite"
-                />
-              </circle>
-            </g>
-          ))}
-          {/* roads */}
-          <path d="M0 100 L 200 100" stroke="#475569" strokeWidth="0.6" opacity="0.5" />
-          <path d="M0 100 L 200 100" stroke="#475569" strokeWidth="0.6" strokeDasharray="3 3" opacity="0.6" />
-          <path d="M100 0 L 100 112" stroke="#475569" strokeWidth="0.6" opacity="0.4" />
-        </svg>
-
-        {/* Drone scan frustum (rotating) */}
-        <div className="absolute left-1/2 top-1/2 h-[200%] w-[200%] -translate-x-1/2 -translate-y-1/2">
-          <div className="drone-sweep absolute inset-0">
-            <div
-              className="absolute left-1/2 top-1/2"
-              style={{
-                width: "50%",
-                height: "50%",
-                background:
-                  "conic-gradient(from -10deg at 0% 0%, rgba(34,211,238,0.18) 0deg, transparent 40deg)",
-                transformOrigin: "0 0",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Crosshair */}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-          <div className="relative h-12 w-12 rounded-full border border-cyan-400/50">
-            <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-cyan-400/40" />
-            <span className="absolute top-1/2 left-0 h-px w-full -translate-y-1/2 bg-cyan-400/40" />
-          </div>
-        </div>
-
-        {/* HUD */}
-        <div className="absolute left-2 top-2 z-10 rounded-sm bg-black/70 px-1.5 py-0.5 text-[9.5px] font-mono">
-          <span className="font-bold tracking-wider text-cyan-300">DRONE-04</span>
-          <span className="ml-1.5 text-slate-300">· Majuli sweep</span>
-        </div>
-        <div className="absolute right-2 top-2 z-10 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[9.5px] text-slate-200">
-          ALT 420m · BAT 84%
-        </div>
-        <div className="absolute bottom-2 left-2 z-10 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[9.5px] text-cyan-300">
-          26.94°N · 94.17°E
-        </div>
-        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-sm bg-red-600/85 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-white">
-          <span className="h-1 w-1 rounded-full bg-white rec-blink" />
-          REC · 4K
-        </div>
-      </div>
-
-      <div className="border-t border-white/10 bg-black/85 px-3 py-1.5 text-[10px]">
-        <div className="flex items-center justify-between text-slate-300">
-          <span className="flex items-center gap-1.5">
-            <Plane className="h-3 w-3 text-cyan-300" />
-            <span className="font-semibold">Aerial sweep · 6 villages flagged</span>
-          </span>
-          <span className="text-slate-500">DRDA Assam · drone partner</span>
-        </div>
       </div>
     </div>
   );

@@ -270,15 +270,12 @@ export default function LandingPage() {
       <section className="border-t border-white/5 bg-ink-950">
         <div className="mx-auto max-w-[1400px] px-6 py-20">
           <SectionLabel kicker="External rails" title="Built on open APIs that already exist." />
-          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <IntegrationCard icon={<Radio />} title="India Post PIN API" sub="api.postalpincode.in" body="Live office-by-district lookup. No auth, 1k req/h. Drives CAPACITY agent." />
             <IntegrationCard icon={<Map />} title="DigiPIN" sub="open algorithm · 4m² grid" body="10-char hierarchical addresses. Encoded locally, no network call. Powers DAKIYA + SAATHI." />
             <IntegrationCard icon={<Network />} title="OpenRouteService" sub="avoid_polygons HGV routing" body="Flood-aware HGV truck routes. 2k free req/day. Drives PATHFINDER detour generation." />
             <IntegrationCard icon={<Bell />} title="Open-Meteo" sub="rainfall · 72h forecast" body="Free weather API. Powers PREDICTOR pre-positioning + SENTINEL real-time risk." />
             <IntegrationCard icon={<Wallet />} title="IPPB rails" sub="98.8M accounts" body="Postal-bank account network. VITTIYA disburses parametric insurance payouts in 4h." />
-            <IntegrationCard icon={<Database />} title="UPU UDP" sub="cross-country benchmarks" body="KIRAN writes outcome records after each deployment. Other countries learn from our runs." />
-            <IntegrationCard icon={<Brain />} title="Anthropic Claude" sub="claude-sonnet-4" body="2 targeted LLM calls — MATCHMAKER reasoning + SAATHI multilingual alerts. ~₹2.4 / scenario." />
-            <IntegrationCard icon={<Activity />} title="LangGraph" sub="StateGraph + interrupt" body="Single shared state, human-in-the-loop pause node, automatic resumption." />
           </div>
         </div>
       </section>

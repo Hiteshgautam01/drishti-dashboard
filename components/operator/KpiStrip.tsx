@@ -2,72 +2,41 @@
 
 import { kpis } from "@/lib/mock-data";
 import { formatNumber } from "@/lib/utils";
-import {
-  Activity,
-  Brain,
-  Clock,
-  Database,
-  Eye,
-  Truck,
-  Users,
-  Wallet,
-} from "lucide-react";
+import { Clock, Truck, Users, Wallet } from "lucide-react";
 
+// 4 KPIs that map directly to the PRD OKRs. Earlier 8-tile strip duplicated
+// data already shown in the right-panel tabs (welfare checks, runtime, LLM
+// calls, UDP write rate) — those numbers are visible in their own panels.
 export function KpiStrip() {
   return (
-    <div className="grid shrink-0 grid-cols-4 gap-2 border-t border-white/5 bg-ink-900/60 p-2.5 md:grid-cols-8">
+    <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-white/5 bg-ink-900/60 p-2.5 md:grid-cols-4">
       <K
         icon={<Clock className="h-3 w-3" />}
         label="Time to first delivery"
         value={`${kpis.responseTimeHours}h`}
-        delta={`vs ${kpis.responseTimeBaselineHours}h base`}
+        delta={`vs ${kpis.responseTimeBaselineHours}h baseline`}
         tone="info"
       />
       <K
         icon={<Users className="h-3 w-3" />}
         label="People reached"
         value="2.9M"
-        delta="12 districts"
+        delta="across 12 districts"
         tone="ok"
       />
       <K
         icon={<Truck className="h-3 w-3" />}
         label="Trucks blocked"
         value={`${kpis.trucksBlocked}`}
-        delta={`${kpis.routeBlockagesAvoided} avoided`}
+        delta={`${kpis.routeBlockagesAvoided} blockages avoided`}
         tone="ok"
       />
       <K
         icon={<Wallet className="h-3 w-3" />}
-        label="Cash families"
+        label="Cash disbursed"
         value={formatNumber(kpis.cashDisbursedFamilies)}
-        delta={`${kpis.cashChannelsActive} channels`}
+        delta={`families · ${kpis.cashChannelsActive} channels`}
         tone="info"
-      />
-      <K
-        icon={<Eye className="h-3 w-3" />}
-        label="Welfare checks"
-        value={formatNumber(kpis.elderlyChecked)}
-        delta={`${kpis.gdsDeployed} GDS`}
-      />
-      <K
-        icon={<Activity className="h-3 w-3" />}
-        label="Pipeline runtime"
-        value={`${kpis.pipelineRuntimeSec}s`}
-        delta="< 3min target"
-        tone="info"
-      />
-      <K
-        icon={<Brain className="h-3 w-3" />}
-        label="LLM calls"
-        value={`${kpis.llmCallsTotal}`}
-        delta="claude-sonnet-4"
-      />
-      <K
-        icon={<Database className="h-3 w-3" />}
-        label="UPU UDP"
-        value="100%"
-        delta="logged"
       />
     </div>
   );
