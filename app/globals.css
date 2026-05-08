@@ -658,3 +658,84 @@ button { -webkit-tap-highlight-color: transparent; }
 .standby-hint {
   animation: standbyPulse 2.4s ease-in-out infinite;
 }
+
+/* ── GDS scene simulation ────────────────────────────────────────────── */
+
+@keyframes drSceneFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.dr-scene-fade {
+  animation: drSceneFade 320ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.dr-story-fade {
+  animation: drSceneFade 280ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* Notification toast slides down from the top of the phone */
+@keyframes drAlertToast {
+  0%   { transform: translateY(-150%); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.dr-alert-toast {
+  animation: drAlertToast 700ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* Concentric audio-ring pulses around the recording mic */
+@keyframes drMicRing {
+  0%   { transform: scale(0.7); opacity: 0.9; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.dr-mic-ring {
+  animation: drMicRing 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+/* Tap-to-record finger pointer */
+@keyframes drFingerTap {
+  0%   { transform: translate(20px, -20px) scale(0.6); opacity: 0; }
+  20%  { transform: translate(0, 0) scale(1); opacity: 1; }
+  60%  { transform: translate(0, 0) scale(0.85); opacity: 1; }
+  100% { transform: translate(0, 0) scale(1.4); opacity: 0; }
+}
+.dr-finger-tap {
+  animation: drFingerTap 1s ease-out;
+}
+
+/* JSON field highlight when it first appears in the NER stream */
+@keyframes drJsonRowNew {
+  0%   { background: rgba(34,211,238,0.18); }
+  100% { background: transparent; }
+}
+.dr-json-row-new {
+  animation: drJsonRowNew 600ms ease-out;
+}
+
+/* Sync success card slide-in */
+@keyframes drSyncSuccess {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.dr-sync-success {
+  animation: drSyncSuccess 400ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* Final done-screen success badge bounce */
+@keyframes drDoneSuccess {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.dr-done-success {
+  animation: drDoneSuccess 600ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* Pipeline log line fade-in */
+@keyframes drLogLine {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.dr-logline {
+  animation: drLogLine 240ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
