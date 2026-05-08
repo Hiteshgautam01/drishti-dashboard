@@ -739,3 +739,54 @@ button { -webkit-tap-highlight-color: transparent; }
 .dr-logline {
   animation: drLogLine 240ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
+
+/* ── SETU scene simulation ───────────────────────────────────────────── */
+
+/* Tier cards stagger-in during the OPTIONS scene */
+@keyframes drTierReveal {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.dr-tier-reveal {
+  animation: drTierReveal 480ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* MATCHMAKER step fades in as it activates */
+@keyframes drMmStep {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.dr-mm-step {
+  animation: drMmStep 280ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* Approve button pulses when about to be auto-clicked */
+@keyframes drApproveClick {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 1px rgba(34,211,238,0.4), 0 6px 18px rgba(34,211,238,0.25); }
+  50%      { transform: scale(0.96); box-shadow: 0 0 0 6px rgba(34,211,238,0.4), 0 6px 22px rgba(34,211,238,0.6); }
+}
+.dr-approve-click {
+  animation: drApproveClick 700ms ease-in-out;
+}
+
+/* Injected-success card slides up with the morphing checkmark */
+@keyframes drInjectedSuccess {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.dr-injected-success {
+  animation: drInjectedSuccess 520ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.dr-injected-line {
+  animation: drInjectedSuccess 380ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* Coverage zone served — pop-in green */
+@keyframes drZoneServed {
+  0%   { transform: scale(0.4); }
+  60%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.dr-zone-served {
+  animation: drZoneServed 320ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
