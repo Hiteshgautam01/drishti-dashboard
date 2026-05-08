@@ -1,19 +1,39 @@
 "use client";
 import dynamic from "next/dynamic";
-import { Layers, Activity } from "lucide-react";
+import { Activity, AlertTriangle, Layers, Play, Sparkles } from "lucide-react";
 
 const DrishtiMap = dynamic(() => import("./DrishtiMap"), {
   ssr: false,
   loading: () => <MapLoadingState />,
 });
 
-export function MapShell() {
+export type SimulationProps = {
+  elapsed: number;
+  paused: boolean;
+  completedAgentIds: Set<string>;
+  activeAgentId: string | null;
+  awaitingApproval: boolean;
+  approvedCount: number;
+  allApproved: boolean;
+  approvedAtMs: number | null;
+};
+
+export function MapShell(sim: SimulationProps) {
+  // Banner triggers shortly after play starts and dismisses ~5s in. We also
+  // re-show it briefly on pipeline reset (elapsed drops back below trigger).
+  const showFloodBanner = sim.elapsed >= 1 && sim.elapsed <= 5;
+  // Standby hint sits in the middle of the map until the operator hits play.
+  const isStandby = sim.elapsed === 0 && sim.paused;
+
   return (
     <div className="relative h-full w-full">
-      <DrishtiMap />
+      <DrishtiMap {...sim} />
       <MapBadge />
       <MapLegend />
       <MapVignette />
+      {showFloodBanner && <FloodDetectedBanner />}
+      {isStandby && <StandbyHint />}
+      <PipelinePhaseBanner sim={sim} />
     </div>
   );
 }
@@ -41,6 +61,93 @@ function MapBadge() {
     </div>
   );
 }
+
+// ─── Standby hint — shown until the operator hits Play ──────────────────
+
+function StandbyHint() {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-1/2 z-[450] -translate-x-1/2 -translate-y-1/2">
+      <div className="standby-hint rounded-xl border border-cyan-400/30 bg-ink-950/85 px-5 py-4 text-center shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+        <div className="flex items-center justify-center gap-2">
+          <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-cyan-400/15">
+            <span className="absolute h-full w-full animate-ping rounded-full bg-cyan-400/40" />
+            <Play className="relative h-3.5 w-3.5 text-cyan-200" fill="currentColor" />
+          </span>
+          <span className="font-display text-[13px] font-semibold tracking-wide text-cyan-100">
+            Press play to start the simulation
+          </span>
+        </div>
+        <div className="mt-1 text-[10.5px] text-slate-400">
+          Watch the 9-agent pipeline respond to the Brahmaputra flood scenario in real time
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── FLOOD DETECTED banner ────────────────────────────────────────────────
+
+function FloodDetectedBanner() {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-16 z-[500] flood-banner -translate-x-1/2">
+      <div className="flex items-center gap-3 rounded-md border border-red-500/60 bg-red-950/90 px-4 py-2.5 shadow-[0_8px_30px_rgba(239,68,68,0.35)] backdrop-blur-md">
+        <span className="relative flex h-3 w-3 shrink-0 items-center justify-center">
+          <span className="absolute h-full w-full animate-ping rounded-full bg-red-500 opacity-70" />
+          <span className="relative h-2 w-2 rounded-full bg-red-400" />
+        </span>
+        <AlertTriangle className="h-5 w-5 text-red-300" />
+        <div>
+          <div className="font-display text-[14px] font-bold tracking-wider text-red-100">
+            FLOOD DETECTED
+          </div>
+          <div className="text-[10.5px] text-red-200/85">
+            Brahmaputra · 412mm rainfall · 12 districts · IMD/SACHET
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Pipeline phase banner — small status under the operations badge ──────
+
+function PipelinePhaseBanner({ sim }: { sim: SimulationProps }) {
+  const phase = derivePhase(sim);
+  if (!phase) return null;
+  return (
+    <div className="pointer-events-none absolute left-4 top-14 z-[400] flex items-center gap-1.5 rounded-md border border-white/8 bg-ink-950/80 px-2.5 py-1 text-[10px] backdrop-blur-md">
+      <Sparkles className="h-3 w-3 text-cyan-300" />
+      <span className="text-slate-400">phase</span>
+      <span className={`font-mono font-semibold ${phase.tone}`}>
+        {phase.label}
+      </span>
+    </div>
+  );
+}
+
+function derivePhase(sim: SimulationProps): { label: string; tone: string } | null {
+  if (sim.elapsed === 0 && sim.approvedCount === 0) {
+    return { label: "STANDBY", tone: "text-slate-300" };
+  }
+  if (sim.awaitingApproval) {
+    return { label: "AWAITING APPROVAL", tone: "text-amber-300 animate-pulse-dot" };
+  }
+  if (sim.allApproved && sim.completedAgentIds.has("kiran")) {
+    return { label: "DEPLOYMENT COMPLETE", tone: "text-emerald-300" };
+  }
+  if (sim.approvedCount > 0) {
+    return { label: "EXECUTING", tone: "text-cyan-300" };
+  }
+  if (sim.activeAgentId) {
+    return {
+      label: sim.activeAgentId.toUpperCase().replace("_", " "),
+      tone: "text-cyan-300",
+    };
+  }
+  return null;
+}
+
+// ─── Legend ────────────────────────────────────────────────────────────────
 
 function MapLegend() {
   return (

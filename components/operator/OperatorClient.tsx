@@ -58,13 +58,28 @@ function getAgentTimings() {
 export function OperatorClient() {
   const [tab, setTab] = useState<TabId>("pipeline");
   const [elapsed, setElapsed] = useState(0); // seconds
-  const [paused, setPaused] = useState(false);
+  // Start paused so the demo begins on operator's "Play" click — sets the
+  // tone for explaining the pipeline rather than running ambiently.
+  const [paused, setPaused] = useState(true);
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
+  // Wall-clock ms at which the operator made their *first* approval. Drives
+  // the truck animation on the map (lerp hub→delivery over ~12s).
+  const [approvedAtMs, setApprovedAtMs] = useState<number | null>(null);
   const tickRef = useRef<NodeJS.Timeout | null>(null);
 
   const timings = useMemo(getAgentTimings, []);
   const allApproved = approvedIds.size === serviceOrders.length;
+
+  // First-approval-edge detection: when approvedIds goes 0 → >0, stamp it.
+  useEffect(() => {
+    if (approvedIds.size > 0 && approvedAtMs === null) {
+      setApprovedAtMs(Date.now());
+    }
+    if (approvedIds.size === 0 && approvedAtMs !== null) {
+      setApprovedAtMs(null);
+    }
+  }, [approvedIds, approvedAtMs]);
 
   // Determine pipeline state from elapsed time.
   const { activeAgentId, completedIds, awaitingApproval, feedCount } = useMemo(() => {
@@ -127,6 +142,7 @@ export function OperatorClient() {
     setElapsed(0);
     setApprovedIds(new Set());
     setRejectedIds(new Set());
+    setApprovedAtMs(null);
     setPaused(false);
   }
 
@@ -156,9 +172,18 @@ export function OperatorClient() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* Map (left) — explicit heights so the Leaflet container always sizes correctly */}
+        {/* Map (left) — explicit heights so the MapLibre container always sizes correctly */}
         <div className="relative h-[44vh] w-full shrink-0 overflow-hidden border-b border-white/5 lg:h-full lg:w-[58%] lg:shrink lg:border-b-0 lg:border-r xl:w-[66%]">
-          <MapShell />
+          <MapShell
+            elapsed={elapsed}
+            paused={paused}
+            completedAgentIds={new Set(completedIds)}
+            activeAgentId={activeAgentId}
+            awaitingApproval={awaitingApproval}
+            approvedCount={approvedIds.size}
+            allApproved={allApproved}
+            approvedAtMs={approvedAtMs}
+          />
         </div>
 
         {/* Right panel — fixed width on lg+, scrolls within its tab content */}

@@ -566,3 +566,95 @@ button { -webkit-tap-highlight-color: transparent; }
   white-space: nowrap;
   transform: translateY(-50%);
 }
+
+/* ── Map simulation: FLOOD DETECTED banner, epicenter, trucks ─────────── */
+
+@keyframes floodBannerSlideIn {
+  0% { transform: translate(-50%, -120%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, -8px); opacity: 0.95; }
+}
+.flood-banner {
+  animation: floodBannerSlideIn 4.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* Epicenter pulsing ring at the flood epicenter */
+@keyframes epicenterRing {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(4); opacity: 0; }
+}
+.dr-epicenter {
+  position: relative;
+  width: 0;
+  height: 0;
+}
+.dr-epicenter-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 50%;
+  border: 2.5px solid #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+  animation: epicenterRing 2s ease-out infinite;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.55);
+}
+.dr-epicenter-ring-2 {
+  animation-delay: 0.7s;
+}
+.dr-epicenter-core {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.8);
+}
+
+/* Generic fade-in used by gated markers when their phase activates */
+@keyframes drFadeIn {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.dr-fadein {
+  animation: drFadeIn 360ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* Animated delivery trucks — sliding hub→destination */
+@keyframes truckArrived {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+.dr-truck-anim {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1.5px solid currentColor;
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--truck-color, #22d3ee) 18%, transparent),
+    0 0 14px color-mix(in oklab, var(--truck-color, #22d3ee) 60%, transparent);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  transition: filter 200ms ease;
+}
+.dr-truck-anim.is-arrived {
+  animation: truckArrived 1.4s ease-in-out infinite;
+}
+
+/* Standby hint — gentle attention pulse */
+@keyframes standbyPulse {
+  0%, 100% { box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 0 0 rgba(34,211,238,0.0); }
+  50%      { box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 0 12px rgba(34,211,238,0.15); }
+}
+.standby-hint {
+  animation: standbyPulse 2.4s ease-in-out infinite;
+}

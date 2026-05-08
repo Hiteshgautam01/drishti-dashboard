@@ -25,6 +25,7 @@ import {
   type Vehicle,
 } from "@/lib/mock-data";
 import { statusColor } from "@/lib/utils";
+import type { SimulationProps } from "./MapShell";
 
 // ── Style + camera ───────────────────────────────────────────────────────
 
@@ -184,6 +185,31 @@ const routeLineLayer: LayerProps = {
   layout: { "line-cap": "round", "line-join": "round" },
 };
 
+// Pending variants used while routes await operator approval — a more uniform
+// cyan pulse rather than the per-order colors.
+const routeGlowLayerPending: LayerProps = {
+  id: "route-glow",
+  type: "line",
+  paint: {
+    "line-color": "#22d3ee",
+    "line-width": 7,
+    "line-blur": 6,
+    "line-opacity": 0.45,
+  },
+  layout: { "line-cap": "round", "line-join": "round" },
+};
+const routeLineLayerPending: LayerProps = {
+  id: "route-line",
+  type: "line",
+  paint: {
+    "line-color": "#22d3ee",
+    "line-width": 2.5,
+    "line-opacity": 0.9,
+    "line-dasharray": [3, 2],
+  },
+  layout: { "line-cap": "round", "line-join": "round" },
+};
+
 // ── Marker icon helpers ──────────────────────────────────────────────────
 
 function officeClass(o: PostOffice) {
@@ -220,15 +246,131 @@ type PopupContent =
   | { kind: "gds"; data: (typeof gdsPositions)[number] }
   | { kind: "damage"; data: (typeof damagedRoads)[number] };
 
+// Used when a phase hasn't been reached yet — keeps the Source mounted but
+// renders nothing.
+const EMPTY_FC = { type: "FeatureCollection" as const, features: [] };
+
+// ── Truck animation routes ───────────────────────────────────────────────
+// Each service order spawns one animated truck that slides hub→delivery
+// over `JOURNEY_S` seconds. Stagger 1.2s per order so they fan out visibly.
+
+const JOURNEY_S = 12;
+const STAGGER_S = 1.2;
+
+const truckRoutes = serviceOrders
+  .filter((o) => o.hubOfficeId !== "ALL_GREEN")
+  .map((order, i) => {
+    const hub = postOffices.find((p) => p.id === order.hubOfficeId);
+    if (!hub) return null;
+    // Pick the first delivery target in the same district
+    const targets = postOffices.filter(
+      (p) => p.district === order.district && p.id !== hub.id,
+    );
+    if (!targets.length) return null;
+    const dest = targets[0];
+    const color =
+      order.type === "medical"
+        ? "#fb7185"
+        : order.type === "shelter"
+          ? "#fb923c"
+          : order.type === "cash"
+            ? "#22d3ee"
+            : "#a3e635";
+    return {
+      id: order.id,
+      hubLon: hub.lon,
+      hubLat: hub.lat,
+      destLon: dest.lon,
+      destLat: dest.lat,
+      destName: dest.name,
+      color,
+      type: order.type,
+      staggerS: i * STAGGER_S,
+      payload: order.payload,
+    };
+  })
+  .filter((x): x is NonNullable<typeof x> => x !== null);
+
+function easeInOut(t: number) {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
 // ── Main map ─────────────────────────────────────────────────────────────
 
-export default function DrishtiMap() {
+export default function DrishtiMap(sim: SimulationProps) {
   const mapRef = useRef<MapRef>(null);
   const [popup, setPopup] = useState<{
     lng: number;
     lat: number;
     content: PopupContent;
   } | null>(null);
+
+  // ── Phase gates — every layer/marker visibility is derived here ────────
+  const completed = sim.completedAgentIds;
+  const showFlood = completed.has("sentinel") || sim.activeAgentId === "capacity"
+    || completed.has("capacity");
+  const showOffices = completed.has("capacity") || sim.activeAgentId === "matchmaker"
+    || completed.has("matchmaker");
+  const showRoutes = completed.has("matchmaker") || sim.activeAgentId === "human_gate"
+    || completed.has("human_gate") || sim.approvedCount > 0;
+  const showRoadBlocks = sim.approvedCount > 0;
+  const showStaticVehicles = sim.approvedCount > 0;
+  const showGds = completed.has("dakiya");
+  const showEpicenter = sim.elapsed >= 1 && sim.elapsed <= 6;
+  // Routes are pulse-cyan during HITL; once approved they go to active colors.
+  const routesPending = sim.awaitingApproval && sim.approvedCount === 0;
+
+  // ── Truck animation — driven by rAF, frozen on pause ──────────────────
+  const [truckProgress, setTruckProgress] = useState(0);
+  const lastProgressRef = useRef(0);
+  const startMsRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // No approvals yet — reset and idle
+    if (sim.approvedAtMs === null) {
+      lastProgressRef.current = 0;
+      startMsRef.current = null;
+      setTruckProgress(0);
+      return;
+    }
+    // Paused — freeze at the last computed progress, do not run rAF
+    if (sim.paused) return;
+
+    // Resume / start: rebase the start so the timer picks up where we left off
+    const totalDurationMs =
+      (JOURNEY_S + STAGGER_S * truckRoutes.length) * 1000;
+    startMsRef.current =
+      Date.now() - lastProgressRef.current * totalDurationMs;
+
+    let frame: number;
+    const loop = () => {
+      const now = Date.now();
+      const t = (now - (startMsRef.current ?? now)) / totalDurationMs;
+      const p = Math.min(1, Math.max(0, t));
+      lastProgressRef.current = p;
+      setTruckProgress(p);
+      // Keep ticking even after p === 1 so vehicles can settle and any future
+      // animation tweaks (pulse on arrival etc.) stay smooth.
+      if (p < 1) {
+        frame = requestAnimationFrame(loop);
+      }
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, [sim.approvedAtMs, sim.paused]);
+
+  // Per-truck position
+  const totalDurationS = JOURNEY_S + STAGGER_S * truckRoutes.length;
+  const trucksAnimated = truckRoutes.map((r) => {
+    // Convert global progress back to seconds, then per-truck offset
+    const tGlobal = truckProgress * totalDurationS;
+    const tLocal = (tGlobal - r.staggerS) / JOURNEY_S;
+    const p = easeInOut(Math.min(1, Math.max(0, tLocal)));
+    const lon = r.hubLon + (r.destLon - r.hubLon) * p;
+    const lat = r.hubLat + (r.destLat - r.hubLat) * p;
+    return { ...r, lon, lat, progress: p, started: tLocal > 0, arrived: p >= 1 };
+  });
+  const showTrucks = sim.approvedAtMs !== null;
 
   // Re-fit on mount + on parent resize so the camera always frames Assam
   useEffect(() => {
@@ -286,21 +428,22 @@ export default function DrishtiMap() {
         customAttribution="DRISHTI · Demo data"
       />
 
-      {/* Flood zones */}
-      <Source id="floods" type="geojson" data={floodFeatureCollection}>
+      {/* Flood zones — appear after SENTINEL completes */}
+      <Source id="floods" type="geojson" data={showFlood ? floodFeatureCollection : EMPTY_FC}>
         <Layer {...floodFillLayer} />
         <Layer {...floodLineLayer} />
       </Source>
 
-      {/* Risk rings */}
-      <Source id="risk-rings" type="geojson" data={riskFeatureCollection}>
+      {/* Risk rings — appear with the flood layer */}
+      <Source id="risk-rings" type="geojson" data={showFlood ? riskFeatureCollection : EMPTY_FC}>
         <Layer {...riskRingLayer} />
       </Source>
 
-      {/* Active routes — glow + dashed line */}
-      <Source id="routes" type="geojson" data={routeFeatureCollection}>
-        <Layer {...routeGlowLayer} />
-        <Layer {...routeLineLayer} />
+      {/* Active routes — appear after MATCHMAKER. Pending routes use a cyan
+          pulse; approved routes use their service-order color. */}
+      <Source id="routes" type="geojson" data={showRoutes ? routeFeatureCollection : EMPTY_FC}>
+        <Layer {...(routesPending ? routeGlowLayerPending : routeGlowLayer)} />
+        <Layer {...(routesPending ? routeLineLayerPending : routeLineLayer)} />
       </Source>
 
       {/* District labels */}
@@ -318,75 +461,114 @@ export default function DrishtiMap() {
         </Marker>
       ))}
 
-      {/* Damaged roads */}
-      {damagedRoads.map((r) => (
-        <Marker
-          key={r.id}
-          longitude={r.lon}
-          latitude={r.lat}
-          anchor="center"
-          onClick={(e) => {
-            e.originalEvent.stopPropagation();
-            setPopup({ lng: r.lon, lat: r.lat, content: { kind: "damage", data: r } });
-          }}
-        >
-          <div className="dr-damage" />
+      {/* Flood-detected epicenter pulse — appears in T+1..6 with the banner */}
+      {showEpicenter && (
+        <Marker longitude={92.68} latitude={26.35} anchor="center" style={{ pointerEvents: "none" }}>
+          <div className="dr-epicenter">
+            <span className="dr-epicenter-ring" />
+            <span className="dr-epicenter-ring dr-epicenter-ring-2" />
+            <span className="dr-epicenter-core" />
+          </div>
         </Marker>
-      ))}
+      )}
 
-      {/* Vehicles */}
-      {vehicles.map((v) => (
-        <Marker
-          key={v.id}
-          longitude={v.lon}
-          latitude={v.lat}
-          anchor="center"
-          onClick={(e) => {
-            e.originalEvent.stopPropagation();
-            setPopup({ lng: v.lon, lat: v.lat, content: { kind: "vehicle", data: v } });
-          }}
-        >
-          <div
-            className={`dr-vehicle ${vehicleClass(v)}`}
-            dangerouslySetInnerHTML={{ __html: vehicleSvg(v) }}
-          />
-        </Marker>
-      ))}
+      {/* Damaged roads — appear after operator approval (PATHFINDER detours active) */}
+      {showRoadBlocks &&
+        damagedRoads.map((r) => (
+          <Marker
+            key={r.id}
+            longitude={r.lon}
+            latitude={r.lat}
+            anchor="center"
+            onClick={(e) => {
+              e.originalEvent.stopPropagation();
+              setPopup({ lng: r.lon, lat: r.lat, content: { kind: "damage", data: r } });
+            }}
+          >
+            <div className="dr-damage dr-fadein" />
+          </Marker>
+        ))}
 
-      {/* GDS positions */}
-      {gdsPositions.map((g) => (
-        <Marker
-          key={g.id}
-          longitude={g.lon}
-          latitude={g.lat}
-          anchor="center"
-          onClick={(e) => {
-            e.originalEvent.stopPropagation();
-            setPopup({ lng: g.lon, lat: g.lat, content: { kind: "gds", data: g } });
-          }}
-        >
-          <div className="dr-gds" />
-        </Marker>
-      ))}
+      {/* Static vehicles at depots — appear after approval */}
+      {showStaticVehicles &&
+        vehicles.map((v) => (
+          <Marker
+            key={v.id}
+            longitude={v.lon}
+            latitude={v.lat}
+            anchor="center"
+            onClick={(e) => {
+              e.originalEvent.stopPropagation();
+              setPopup({ lng: v.lon, lat: v.lat, content: { kind: "vehicle", data: v } });
+            }}
+          >
+            <div
+              className={`dr-vehicle dr-fadein ${vehicleClass(v)}`}
+              dangerouslySetInnerHTML={{ __html: vehicleSvg(v) }}
+            />
+          </Marker>
+        ))}
 
-      {/* Post offices */}
-      {postOffices.map((o) => (
-        <Marker
-          key={o.id}
-          longitude={o.lon}
-          latitude={o.lat}
-          anchor="center"
-          onClick={(e) => {
-            e.originalEvent.stopPropagation();
-            setPopup({ lng: o.lon, lat: o.lat, content: { kind: "office", data: o } });
-          }}
-        >
-          <div
-            className={`dr-office ${officeClass(o)}`}
-            style={{ color: statusColor(o.status) }}
-          />
-        </Marker>
-      ))}
+      {/* Animated delivery trucks — slide hub→destination after approval */}
+      {showTrucks &&
+        trucksAnimated.map((t) => {
+          if (!t.started) return null;
+          return (
+            <Marker
+              key={`truck-${t.id}`}
+              longitude={t.lon}
+              latitude={t.lat}
+              anchor="center"
+              style={{ pointerEvents: "none", zIndex: 5 }}
+            >
+              <div
+                className={`dr-truck-anim ${t.arrived ? "is-arrived" : ""}`}
+                style={{ color: t.color, ["--truck-color" as any]: t.color }}
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                  <path d="M3 17V7h11v10H3zm12 0v-5h3l3 3v2h-6zM6.5 19a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm11 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
+                </svg>
+              </div>
+            </Marker>
+          );
+        })}
+
+      {/* GDS positions — appear after DAKIYA */}
+      {showGds &&
+        gdsPositions.map((g) => (
+          <Marker
+            key={g.id}
+            longitude={g.lon}
+            latitude={g.lat}
+            anchor="center"
+            onClick={(e) => {
+              e.originalEvent.stopPropagation();
+              setPopup({ lng: g.lon, lat: g.lat, content: { kind: "gds", data: g } });
+            }}
+          >
+            <div className="dr-gds dr-fadein" />
+          </Marker>
+        ))}
+
+      {/* Post offices — appear after CAPACITY runs */}
+      {showOffices &&
+        postOffices.map((o) => (
+          <Marker
+            key={o.id}
+            longitude={o.lon}
+            latitude={o.lat}
+            anchor="center"
+            onClick={(e) => {
+              e.originalEvent.stopPropagation();
+              setPopup({ lng: o.lon, lat: o.lat, content: { kind: "office", data: o } });
+            }}
+          >
+            <div
+              className={`dr-office dr-fadein ${officeClass(o)}`}
+              style={{ color: statusColor(o.status) }}
+            />
+          </Marker>
+        ))}
 
       {popup && (
         <Popup
