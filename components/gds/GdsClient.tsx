@@ -29,6 +29,12 @@ import {
   Cloud,
   Sparkles,
   Activity,
+  Building2,
+  Mailbox,
+  IndianRupee,
+  Users,
+  Route,
+  ShieldCheck,
 } from "lucide-react";
 
 // ─── Language ──────────────────────────────────────────────────────────────
@@ -65,6 +71,7 @@ const T = {
 
 type Scene =
   | "standby"
+  | "dashboard"
   | "alert"
   | "tap"
   | "recording"
@@ -74,15 +81,16 @@ type Scene =
 
 const SCENES: { id: Scene; start: number; end: number; label: string }[] = [
   { id: "standby", start: 0, end: 1, label: "Standby" },
-  { id: "alert", start: 1, end: 4, label: "Alert" },
-  { id: "tap", start: 4, end: 7, label: "Tap voice" },
-  { id: "recording", start: 7, end: 14, label: "Whisper ASR" },
-  { id: "ner", start: 14, end: 18, label: "Claude NER" },
-  { id: "sync", start: 18, end: 22, label: "Sync" },
-  { id: "done", start: 22, end: 30, label: "Synced" },
+  { id: "dashboard", start: 1, end: 6, label: "Postal beat" },
+  { id: "alert", start: 6, end: 9, label: "Alert" },
+  { id: "tap", start: 9, end: 12, label: "Tap voice" },
+  { id: "recording", start: 12, end: 19, label: "Whisper ASR" },
+  { id: "ner", start: 19, end: 23, label: "Claude NER" },
+  { id: "sync", start: 23, end: 27, label: "Sync" },
+  { id: "done", start: 27, end: 35, label: "Synced" },
 ];
 
-const SIM_END_S = 30;
+const SIM_END_S = 35;
 
 // Authentic Assamese transcript that types out during the recording scene.
 const TRANSCRIPT_AS =
@@ -326,6 +334,9 @@ function SceneStack({
   return (
     <div key={scene} className="dr-scene-fade h-full w-full">
       {scene === "standby" && <HomeScreen lang={lang} alertVisible={false} />}
+      {scene === "dashboard" && (
+        <PostalDashboardScreen lang={lang} sceneElapsed={sceneElapsed} />
+      )}
       {scene === "alert" && (
         <HomeScreen lang={lang} alertVisible={true} alertElapsed={sceneElapsed} />
       )}
@@ -336,6 +347,208 @@ function SceneStack({
       {scene === "ner" && <NerScreen lang={lang} sceneElapsed={sceneElapsed} />}
       {scene === "sync" && <SyncScreen lang={lang} sceneElapsed={sceneElapsed} />}
       {scene === "done" && <DoneScreen lang={lang} />}
+    </div>
+  );
+}
+
+// ─── Postal beat dashboard screen ────────────────────────────────────────
+// Shown right after STANDBY. Establishes the postal-network angle:
+// Ramesh isn't a new disaster worker — he's a regular postman whose beat
+// already covers the affected area. DRISHTI augments his existing tools.
+
+function PostalDashboardScreen({
+  lang,
+  sceneElapsed,
+}: {
+  lang: GdsLang;
+  sceneElapsed: number;
+}) {
+  // Beat progress climbs from 0 to 40% over the scene duration
+  const beatPct = Math.min(40, Math.round(sceneElapsed * 8));
+
+  return (
+    <div className="relative h-full w-full overflow-y-auto pb-6">
+      {/* Profile chip */}
+      <div className="px-5 pt-3 pb-3">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-gradient-to-br from-amber-400/[0.08] to-orange-500/[0.02] p-3">
+          <div className="relative">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 font-display text-[14px] font-bold text-ink-950">
+              RB
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-ink-950" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-display text-[15px] font-semibold leading-tight text-slate-100">
+              Ramesh G. Bora
+            </div>
+            <div className="text-[10px] text-slate-400">
+              Gramin Dak Sevak · India Post
+            </div>
+          </div>
+          <div className="text-right text-[9px] uppercase tracking-wider text-slate-500">
+            <div>Beat</div>
+            <div className="font-mono text-cyan-300">7M3</div>
+          </div>
+        </div>
+      </div>
+
+      {/* TODAY · BEAT card */}
+      <div className="px-5 pb-3">
+        <div className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/[0.06] to-cyan-500/[0.02] p-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Mailbox className="h-3.5 w-3.5 text-cyan-300" />
+              <span className="label-mini text-cyan-300/85">Today's beat</span>
+            </div>
+            <span className="chip chip-warn text-[8.5px] py-0">
+              <AlertTriangle className="h-2.5 w-2.5" />
+              EMERGENCY MODE
+            </span>
+          </div>
+
+          <div className="mt-2.5 grid grid-cols-3 gap-2">
+            <DashStat
+              icon={<Package className="h-3 w-3" />}
+              label="Packages"
+              value="18"
+              sub="12 mail · 6 relief"
+            />
+            <DashStat
+              icon={<IndianRupee className="h-3 w-3" />}
+              label="IPPB cash"
+              value="₹1.0L"
+              sub="loaded for 4 fams"
+              tone="emerald"
+            />
+            <DashStat
+              icon={<MapPin className="h-3 w-3" />}
+              label="DigiPIN"
+              value="38"
+              sub="zones in beat"
+            />
+          </div>
+
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-slate-400">
+                <Route className="inline h-2.5 w-2.5 mr-1" />
+                Beat progress
+              </span>
+              <span className="font-mono tabular text-cyan-300">
+                {(beatPct * 0.084).toFixed(1)} / 8.4 km
+              </span>
+            </div>
+            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/5">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-cyan-600 transition-all duration-500"
+                style={{ width: `${beatPct}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hub status — Mayong Branch Office */}
+      <div className="px-5 pb-3">
+        <div className="rounded-xl border border-white/8 bg-ink-900/60 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5 text-amber-300" />
+              <span className="text-[11px] font-semibold text-slate-100">
+                Mayong Branch Office
+              </span>
+            </div>
+            <span className="chip chip-ok text-[8.5px] py-0">GREEN</span>
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+            <span>3.2 km · last sync 4m</span>
+            <span className="text-slate-600">·</span>
+            <code className="font-mono text-cyan-300">FK4-7M3-001</code>
+          </div>
+
+          <div className="mt-2.5 grid grid-cols-2 gap-2 rounded-md border border-white/5 bg-black/25 p-2 text-[10.5px]">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">Pre-positioned</span>
+              <span className="font-mono text-emerald-300">36 kits</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">IPPB float</span>
+              <span className="font-mono text-emerald-300">₹1.2 Cr</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Postal infrastructure quick view */}
+      <div className="px-5 pb-3">
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
+            <span className="label-mini">Postal network in your area</span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10.5px]">
+            <NetItem icon={<Users className="h-2.5 w-2.5" />} label="GDS in beat" value="5" />
+            <NetItem icon={<Building2 className="h-2.5 w-2.5" />} label="Sub office" value="1" />
+            <NetItem icon={<Mailbox className="h-2.5 w-2.5" />} label="Letterboxes" value="32" />
+            <NetItem icon={<Truck className="h-2.5 w-2.5" />} label="Postal vans" value="2" />
+          </div>
+          <div className="mt-2 border-t border-white/5 pt-2 text-[9.5px] leading-relaxed text-slate-500">
+            Activated as part of <span className="text-cyan-300">173 GREEN-status offices</span>{" "}
+            across Assam · 948 GDS deployed
+          </div>
+        </div>
+      </div>
+
+      {/* Voice FAB at bottom (peek) */}
+      <FAB lang={lang} glow={false} />
+    </div>
+  );
+}
+
+function DashStat({
+  icon,
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub: string;
+  tone?: "emerald";
+}) {
+  const color = tone === "emerald" ? "text-emerald-300" : "text-slate-100";
+  return (
+    <div className="rounded-lg border border-white/5 bg-black/25 px-2 py-2">
+      <div className="flex items-center gap-1 text-[8.5px] uppercase tracking-wider text-slate-500">
+        {icon}
+        {label}
+      </div>
+      <div className={cn("mt-0.5 font-display text-[16px] font-bold tabular leading-none", color)}>
+        {value}
+      </div>
+      <div className="mt-0.5 text-[8.5px] text-slate-500 leading-tight">{sub}</div>
+    </div>
+  );
+}
+
+function NetItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="inline-flex items-center gap-1 text-slate-400">
+        {icon}
+        {label}
+      </span>
+      <span className="font-mono tabular font-semibold text-slate-100">{value}</span>
     </div>
   );
 }
@@ -986,8 +1199,14 @@ const STORY: Record<
   standby: {
     kicker: "T+0 · Standby",
     title: "Press Play to follow Ramesh",
-    body: "Ramesh Bora is on duty in Mayong. Today is 7 May 2026. The Brahmaputra has crossed the danger mark. He is one of 948 GDS deployed in the Assam scenario.",
+    body: "Ramesh Bora is one of 250,000 Gramin Dak Sevaks. Same uniform, same beat, same phone — augmented for disaster response. DRISHTI doesn't build new infrastructure; it activates what India Post already has.",
     tone: "text-slate-300",
+  },
+  dashboard: {
+    kicker: "T+1s · Postal beat",
+    title: "Today's mail run, augmented",
+    body: "Ramesh's regular postal route covers 38 DigiPIN zones across 8.4 km. Mayong Branch Office is pre-positioned with 36 ration kits and ₹1.2 Cr IPPB float. The postal network is the disaster response — already there, already known to villagers, already trusted.",
+    tone: "text-cyan-300",
   },
   alert: {
     kicker: "T+1s · Notification",
@@ -1050,6 +1269,7 @@ function StoryPanel({
       </div>
 
       {/* Live data stream during the active scenes */}
+      {scene === "dashboard" && <PostalNetworkPanel sceneElapsed={sceneElapsed} />}
       {(scene === "recording" || scene === "ner" || scene === "sync") && (
         <LiveData scene={scene} sceneElapsed={sceneElapsed} />
       )}
@@ -1214,6 +1434,51 @@ function Spec({ label, value }: { label: string; value: string }) {
     <div className="rounded-md border border-white/5 bg-white/[0.02] px-2 py-1.5">
       <div className="text-[9.5px] uppercase tracking-wider text-slate-500">{label}</div>
       <div className="font-display text-[12.5px] font-semibold text-slate-100">{value}</div>
+    </div>
+  );
+}
+
+// ─── Why-postal-network panel — shown during the DASHBOARD scene ─────────
+
+function PostalNetworkPanel({ sceneElapsed }: { sceneElapsed: number }) {
+  const items = [
+    { icon: <Building2 className="h-3 w-3" />, label: "164,999 post offices · 90% rural", appearAt: 0.0 },
+    { icon: <Users className="h-3 w-3" />, label: "250,000 GDS already on every village beat", appearAt: 0.6 },
+    { icon: <IndianRupee className="h-3 w-3" />, label: "IPPB · 98.8M doorstep banking accounts", appearAt: 1.2 },
+    { icon: <MapPin className="h-3 w-3" />, label: "DigiPIN · 4m² grid, works offline", appearAt: 1.8 },
+    { icon: <Mailbox className="h-3 w-3" />, label: "Pre-positioned stocks during monsoon season", appearAt: 2.4 },
+  ];
+  return (
+    <div className="rounded-xl border border-amber-400/25 bg-gradient-to-br from-amber-400/[0.05] to-orange-500/[0.02] p-4">
+      <div className="flex items-center gap-1.5">
+        <ShieldCheck className="h-3.5 w-3.5 text-amber-300" />
+        <span className="label-mini text-amber-300/85">
+          Why the postal network
+        </span>
+      </div>
+      <div className="mt-2.5 space-y-1.5">
+        {items.map((it, i) => {
+          const visible = sceneElapsed >= it.appearAt;
+          return (
+            <div
+              key={i}
+              className={cn(
+                "flex items-center gap-2 text-[11.5px] transition-opacity",
+                visible ? "opacity-100" : "opacity-30",
+              )}
+            >
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-400/15 text-amber-300">
+                {it.icon}
+              </span>
+              <span className="text-slate-200">{it.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 border-t border-amber-400/10 pt-2 text-[10.5px] leading-relaxed text-amber-100/80">
+        DRISHTI doesn't build new infrastructure. It activates what already exists,
+        in 60+ years of postal coverage.
+      </div>
     </div>
   );
 }
