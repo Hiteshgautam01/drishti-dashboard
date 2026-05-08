@@ -170,26 +170,17 @@ export function SituationRoom() {
   const [live, setLive] = useState(true);
 
   return (
+    // The Situation Room renders inside operator's right panel (34-42%
+    // viewport width). Multi-column grids would squash each tile to ~200-
+    // 240px which is unreadable. Single-column stacking throughout.
     <div className="h-full overflow-y-auto bg-ink-950">
       <div className="space-y-3 p-3">
         <Header live={live} setLive={setLive} />
-
-        {/* Top row: News telecast (wide) + CCTV grid 2x2 */}
-        <div className="grid gap-3 lg:grid-cols-2">
-          <NewsTelecast live={live} />
-          <CctvGrid />
-        </div>
-
-        {/* Mid row: Brahmaputra gauge + Social pulse */}
-        <div className="grid gap-3 lg:grid-cols-[260px_1fr]">
-          <RiverGauge live={live} />
-          <SocialPulse live={live} />
-        </div>
-
-        {/* Global pulse — full width, proves the global-scale claim */}
+        <NewsTelecast live={live} />
+        <CctvGrid />
+        <RiverGauge live={live} />
+        <SocialPulse live={live} />
         <GlobalDisasterPulse live={live} />
-
-        {/* Helpline queue */}
         <CallCenter />
       </div>
     </div>
@@ -1234,16 +1225,16 @@ function GlobalDisasterPulse({ live }: { live: boolean }) {
 
   return (
     <div className="panel p-3.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <div className="flex items-center gap-1.5 label-mini">
           <Globe2 className="h-3 w-3 text-cyan-300" />
-          Global disaster pulse · NASA EONET
+          Global disaster pulse
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-400">
           {isLive && (
             <span className="flex items-center gap-1">
               <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse-dot" />
-              live
+              live · NASA EONET
             </span>
           )}
           {!isLive && live && err && (
@@ -1254,7 +1245,7 @@ function GlobalDisasterPulse({ live }: { live: boolean }) {
             {markers.length} active
           </span>
           <span className="rounded-md border border-cyan-400/25 bg-cyan-400/[0.06] px-1.5 py-0.5 text-cyan-200">
-            South Asia: {southAsiaCount}
+            S Asia: {southAsiaCount}
           </span>
         </div>
       </div>
@@ -1284,11 +1275,11 @@ function GlobalDisasterPulse({ live }: { live: boolean }) {
         })}
       </div>
 
-      <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_280px]">
-        {/* Equirectangular world map */}
+      <div className="mt-3 space-y-3">
+        {/* Equirectangular world map — full width of the panel */}
         <div className="relative overflow-hidden rounded-lg border border-white/8 bg-[#040810]">
           <div
-            className="relative aspect-[2/1] w-full"
+            className="relative aspect-[2.4/1] w-full"
             style={{
               background:
                 "linear-gradient(180deg, #0a0f1a 0%, #06080d 40%, #04060a 100%)",
@@ -1389,10 +1380,15 @@ function GlobalDisasterPulse({ live }: { live: boolean }) {
           </div>
         </div>
 
-        {/* Recent events list */}
+        {/* Recent events — 2-col grid below the map */}
         <div>
-          <div className="label-mini mb-1.5">Latest events</div>
-          <div className="max-h-[180px] space-y-1.5 overflow-y-auto pr-1">
+          <div className="mb-1.5 flex items-center justify-between">
+            <div className="label-mini">Latest events</div>
+            <div className="text-[9.5px] text-slate-500">
+              source: <span className="text-cyan-300">eonet.gsfc.nasa.gov</span> · refresh 5m
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {recent.map((e) => {
               const meta = CAT_META[e.cat] ?? {
                 color: "#94a3b8",
@@ -1406,7 +1402,7 @@ function GlobalDisasterPulse({ live }: { live: boolean }) {
                   href={e.link || undefined}
                   target={e.link ? "_blank" : undefined}
                   rel="noopener noreferrer"
-                  className="group flex items-start gap-2 rounded-md border border-white/8 bg-white/[0.02] px-2 py-1.5 text-[11px] hover:border-white/20"
+                  className="group flex min-w-0 items-start gap-2 rounded-md border border-white/8 bg-white/[0.02] px-2 py-1.5 text-[11px] hover:border-white/20"
                   onMouseEnter={() => setHovered(e.id)}
                   onMouseLeave={() => setHovered(null)}
                 >
@@ -1431,9 +1427,6 @@ function GlobalDisasterPulse({ live }: { live: boolean }) {
               );
             })}
           </div>
-          <div className="mt-2 text-[9.5px] text-slate-500">
-            Source: <span className="text-cyan-300">eonet.gsfc.nasa.gov</span> · CC0 · refresh 5m
-          </div>
         </div>
       </div>
     </div>
@@ -1457,9 +1450,9 @@ function HoverTip({
         left: `${x}%`,
         top: `${y}%`,
         transform: onRight
-          ? "translate(calc(-100% - 12px), -50%)"
-          : "translate(12px, -50%)",
-        maxWidth: 220,
+          ? "translate(calc(-100% - 10px), -50%)"
+          : "translate(10px, -50%)",
+        maxWidth: 180,
       }}
     >
       <div className="flex items-center gap-1.5">
