@@ -119,10 +119,10 @@ export default function LandingPage() {
       {/* AGENT PIPELINE */}
       <section className="relative bg-grid-only">
         <div className="mx-auto max-w-[1400px] px-6 py-20">
-          <SectionLabel kicker="Core layer" title="A single LangGraph state, threaded through 9 agents." />
+          <SectionLabel kicker="Core layer" title="A single LangGraph state, threaded through 10 agents." />
           <p className="mt-3 max-w-3xl text-sm text-slate-400">
             Every agent reads from and writes to one shared <code className="font-mono text-cyan-300">DrishtiState</code> object.
-            Two are LLM-powered (MATCHMAKER reasoning, SAATHI multilingual). One is a human approval gate. The rest are deterministic Python.
+            Three are LLM-powered (VAANI voice intake, MATCHMAKER reasoning, SAATHI multilingual). One is a human approval gate. The rest are deterministic Python.
           </p>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -226,7 +226,7 @@ export default function LandingPage() {
               tag="Hero"
               title="Operator Dashboard"
               persona="Rajiv · District Superintendent of Post"
-              description="Full-screen split — interactive map of post offices, flood zones, damaged roads, live routes — with the 9-agent pipeline streaming results into right-hand tabs."
+              description="Full-screen split — interactive map of post offices, flood zones, damaged roads, live routes — with the 10-agent pipeline streaming results into right-hand tabs."
               bullets={[
                 "Live agent log (SSE)",
                 "Approve / reject Service Orders",

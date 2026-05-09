@@ -16,7 +16,7 @@ export function PipelinePanel({
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-center justify-between">
-        <div className="label-mini">9-AGENT PIPELINE · LangGraph StateGraph</div>
+        <div className="label-mini">10-AGENT PIPELINE · LangGraph StateGraph</div>
         <span className="text-[10px] text-slate-500">
           {completedAgentIds.length}/{agents.length} complete
         </span>

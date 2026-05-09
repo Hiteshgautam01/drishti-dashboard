@@ -78,7 +78,7 @@ function StandbyHint() {
           </span>
         </div>
         <div className="mt-1 text-[10.5px] text-slate-400">
-          Watch the 9-agent pipeline respond to the Brahmaputra flood scenario in real time
+          Watch the 10-agent pipeline respond to the Brahmaputra flood scenario in real time
         </div>
       </div>
     </div>
